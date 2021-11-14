@@ -23,15 +23,14 @@ def main():
 @app.route('/mineblock', methods=['GET'])
 
 def mineblock():
-    i = 0
-    while i< 100000000 :
-        # minerar novo block
-        prev_block = blockchain.previous_block()
-        prev_proof = prev_block['proof']
-        proof = blockchain.proof_of_work(prev_proof)
-        prev_hash = blockchain.hash(prev_block)
+    
+    # minerar novo block
+    prev_block = blockchain.previous_block()
+    prev_proof = prev_block['proof']
+    proof = blockchain.proof_of_work(prev_proof)
+    prev_hash = blockchain.hash(prev_block)
 
-        generated_block = blockchain.create_block( previous_hash=prev_hash, proof=proof)
+    generated_block = blockchain.create_block( previous_hash=prev_hash, proof=proof)
 
     # retornar uma resposta para o cliente (navegador ou Postman)
     response = {'message': "Block_mined:",

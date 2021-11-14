@@ -6,9 +6,11 @@ from random import seed, randint
 
 class Blockchain:
     def __init__(self):
-        self.current_transactions = []
         self.chain = []
-        self.create_block(previous_hash="0", proof=1)# minerar o primeiro block da cadeia
+        self.current_transactions = []
+
+        # minerar o primeiro bloco da cadeia
+        self.create_block(previous_hash="0", proof=1)
 
     def create_block(self, previous_hash, proof):
         block = {
@@ -24,10 +26,8 @@ class Blockchain:
         return block
 
     def proof_of_work(self, last_proof):
-        print("computing1...")
         seed()
-        proof = randint(0, 100)
-        print("computing2...")
+        proof = randint(0, sys.maxsize)
         while self.validate_proof(last_proof, proof) is False:
             proof = randint(0, sys.maxsize)
 
@@ -48,8 +48,3 @@ class Blockchain:
     def hash(self, block):
         encoded_block = json.dumps(block, sort_keys= True).encode()
         return sha256(encoded_block).hexdigest()
-
-
-
-
-    
