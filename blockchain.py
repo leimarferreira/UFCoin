@@ -100,6 +100,24 @@ class Blockchain:
         hash = sha256(str(proof * last_proof).encode()).hexdigest()
         return hash[:5] == "0" * number_of_zeroes
 
+    def is_chain_valid(self, chain):
+        last_block = chain[0]
+        current_index = 1
+
+        while current_index < len(chain):
+            block = chain[current_index]
+
+            if not Block.is_valid_block(block, last_block):
+                return False
+
+            if not self.validate_proof(last_block.proof, block.proof):
+                return False
+
+            last_block = block
+            current_index += 1
+
+        return True
+
     def replace_chain(self, new_chain):
         # TODO: replace the chain if the chain is invalid
         pass
