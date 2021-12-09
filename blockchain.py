@@ -1,8 +1,10 @@
-import sys
-import time
 import json
+import sys
 from hashlib import sha256
-from random import seed, randint
+from random import randint, seed
+from urllib.parse import urlparse
+
+from model.block import Block
 
 # TODO: Add docstring comments in all the functions.
 
@@ -13,24 +15,30 @@ class Blockchain:
         self.current_transactions = []
         self.nodes = set()
 
-        # minerar o primeiro bloco da cadeia
-        self.create_block(previous_hash=None, proof=self.get_proof())
+        # Criar bloco genêsis
+        genesis = Block(0, [], None, self.get_proof())
+        self.chain.append(genesis)
 
-    def create_block(self, previous_hash, proof):
-        block = {
-            "index": len(self.chain) + 1,
-            "timestamp": time.time(),
-            "transactions": self.current_transactions,
-            "previous_hash": previous_hash,
-            "proof": proof
-        }
+    def create_block(self, proof: int) -> Block:
+        """
+        Creates a new block.
+        :param proof: <int> Proof of Work of the block to be created.
+        :return: <Block> Block created.
+        """
+
+        last_block = self.last_block
+        block = Block(index=last_block.index + 1, transactions=self.current_transactions,
+                      previous_hash=last_block.hash, proof=proof)
+
+        if not Block.is_valid_block(block, last_block):
+            return None
 
         self.current_transactions = []
         self.chain.append(block)
 
         return block
 
-    def new_transaction(self, sender, receiver, amount):
+    def create_transaction(self, sender, receiver, amount):
         """
         Creates a new transaction.
         :param sender: <str> The address of the sender node.
@@ -50,17 +58,19 @@ class Blockchain:
             "amount": amount
         })
 
-        return self.last_block['index'] + 1
+        return self.last_block.index + 1
 
+    # TODO: implement a better proof of work
     def proof_of_work(self, last_proof):
         """
         Proof of Work algorithm.
+        - Find a number x such that hash(x * y) has 5 leading zeroes.
+        - x is the current proof and y is the proof of the previous block. 
         :param last_proof: <int> Proof of Work of the last block mined.
         :return: <int> Proof of Work of the current block.
         """
 
         proof = self.get_proof()
-
         while self.validate_proof(last_proof, proof) is False:
             proof = self.get_proof()
 
@@ -90,10 +100,9 @@ class Blockchain:
         hash = sha256(str(proof * last_proof).encode()).hexdigest()
         return hash[:5] == "0" * number_of_zeroes
 
-    @staticmethod
-    def hash_block(block):
-        encoded_block = json.dumps(block, sort_keys=True).encode()
-        return sha256(encoded_block).hexdigest()
+    def replace_chain(self, new_chain):
+        # TODO: replace the chain if the chain is invalid
+        pass
 
     @property
     def last_block(self):
