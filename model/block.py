@@ -1,11 +1,12 @@
-# import json
 import time
 from hashlib import sha256
 from typing import Any, List
 
+from model.transaction import Transaction
+
 
 class Block:
-    def __init__(self, index: int, transactions: List[Any], previous_hash: str, proof: int):
+    def __init__(self, index: int, transactions: List[Transaction], previous_hash: str, proof: int):
         self.index = index
         self.timestamp = time.time()
         self.transactions = transactions
@@ -24,7 +25,6 @@ class Block:
         encoded_block = f'{block.index}{block.timestamp}{block.transactions}' \
             f'{block.previous_hash}{block.proof}'.encode()
 
-        # encoded_block = json.dumps(block.__dict__, sort_keys=True).encode()
         return sha256(encoded_block).hexdigest()
 
     @staticmethod

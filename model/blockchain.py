@@ -4,7 +4,9 @@ from hashlib import sha256
 from random import randint, seed
 from urllib.parse import urlparse
 
-from model.block import Block
+import requests
+
+from model import Block, Transaction
 
 # TODO: Add docstring comments in all the functions.
 
@@ -48,17 +50,15 @@ class Blockchain:
         added to i.e. the next block to be mined.
         """
 
-        # TODO: Validate the transaction. Validate if both the sender and
-        # receiver are valid nodes. If yes, then validate if the sender has the
-        # amount to be sent.
-
-        self.current_transactions.append({
-            "sender": sender,
-            "receiver": receiver,
-            "amount": amount
-        })
+        transaction = Transaction(sender, receiver, amount)
+        self.current_transactions.append(transaction)
 
         return self.last_block.index + 1
+
+    def register_node(self, address):
+
+        parsed_url = urlparse(address)
+        self.nodes.add(parsed_url.netloc)
 
     # TODO: implement a better proof of work
     def proof_of_work(self, last_proof):
@@ -118,9 +118,29 @@ class Blockchain:
 
         return True
 
-    def replace_chain(self, new_chain):
-        # TODO: replace the chain if the chain is invalid
-        pass
+    def resolve_conflicts(self):
+
+        neighbours = self.nodes
+        new_chain = None
+
+        max_length = len(self.chain)
+
+        for node in neighbours:
+            response = requests.get(f'http://{node}/chain')
+
+            if response.status_code == 200:
+                length = response.json()['length']
+                chain = response.json()['chain']
+
+                if length > max_length:
+                    max_length = length
+                    new_chain = chain
+
+        if new_chain:
+            self.chain = new_chain
+            return True
+
+        return False
 
     @property
     def last_block(self):
