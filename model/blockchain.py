@@ -1,4 +1,3 @@
-import json
 import sys
 from hashlib import sha256
 from random import randint, seed
@@ -18,7 +17,12 @@ class Blockchain:
         self.nodes = set()
 
         # Criar bloco genêsis
-        genesis = Block(0, [], None, self.get_proof())
+        genesis = Block(
+            index=0,
+            transactions=[],
+            previous_hash=None,
+            proof=self.get_proof()
+        )
         self.chain.append(genesis)
 
     def create_block(self, proof: int) -> Block:
@@ -29,8 +33,11 @@ class Blockchain:
         """
 
         last_block = self.last_block
-        block = Block(index=last_block.index + 1, transactions=self.current_transactions,
-                      previous_hash=last_block.hash, proof=proof)
+        block = Block(
+            index=last_block.index + 1,
+            transactions=self.current_transactions,
+            previous_hash=last_block.hash,
+            proof=proof)
 
         if not Block.is_valid_block(block, last_block):
             return None
@@ -40,23 +47,30 @@ class Blockchain:
 
         return block
 
-    def create_transaction(self, sender, receiver, amount):
+    def create_transaction(self, sender, receiver, amount) -> int:
         """
         Creates a new transaction.
-        :param sender: <str> The address of the sender node.
-        :param receiver: <str> The addres of the receiver node.
+        :param sender: <str> The identifier of the sender node.
+        :param receiver: <str> The identifier of the receiver node.
         :param amount: <int> Amount of cryptocurrencies to be sent.
         :return: <int> The index of the block which the transaction will be
         added to i.e. the next block to be mined.
         """
 
-        transaction = Transaction(sender, receiver, amount)
+        transaction = Transaction(
+            sender=sender,
+            receiver=receiver,
+            amount=amount
+        )
         self.current_transactions.append(transaction)
 
         return self.last_block.index + 1
 
-    def register_node(self, address):
-
+    def register_node(self, address) -> None:
+        """
+        Register a new node in the blockchain.
+        :param address: <str> Address of the node to be registered.
+        """
         parsed_url = urlparse(address)
         self.nodes.add(parsed_url.netloc)
 
@@ -65,7 +79,7 @@ class Blockchain:
         """
         Proof of Work algorithm.
         - Find a number x such that hash(x * y) has 5 leading zeroes.
-        - x is the current proof and y is the proof of the previous block. 
+        - x is the current proof and y is the proof of the previous block.
         :param last_proof: <int> Proof of Work of the last block mined.
         :return: <int> Proof of Work of the current block.
         """
@@ -130,9 +144,9 @@ class Blockchain:
 
             if response.status_code == 200:
                 length = response.json()['length']
-                chain = response.json()['chain']
+                chain = response.json(object_hook=self.__from_json)['chain']
 
-                if length > max_length:
+                if length > max_length and self.is_chain_valid(chain):
                     max_length = length
                     new_chain = chain
 
@@ -145,3 +159,14 @@ class Blockchain:
     @property
     def last_block(self):
         return self.chain[-1]
+
+    @staticmethod
+    def __from_json(obj):
+        if 'transactions' in obj.keys():
+            obj['transactions'] = [Transaction(
+                **transaction) for transaction in obj['transactions']]
+
+        if 'chain' in obj.keys():
+            chain = obj['chain']
+            obj['chain'] = [Block(**block) for block in chain]
+        return obj

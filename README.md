@@ -1,11 +1,22 @@
-# UFCoin
+# **UFCoin**
 
 Trabalho da disciplina de Projeto Integrador IV.
 
 
-## Executar
+## **Executar**
+---
+
+Instalar dependências:
 
 ```
 $ python3 -m pip install -r requiriments.txt
-$ python3 .
 ```
+
+Executar:
+
+```
+$ python3 . [port]
+```
+
+- `port`: Argumento opcional. Representa a porta a ser usada pelo servidor http. Valor padrão: 5000.
+

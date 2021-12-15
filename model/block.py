@@ -6,13 +6,20 @@ from model.transaction import Transaction
 
 
 class Block:
-    def __init__(self, index: int, transactions: List[Transaction], previous_hash: str, proof: int):
+    def __init__(
+            self,
+            index: int,
+            transactions: List[Transaction],
+            proof: int,
+            previous_hash: str,
+            hash: str = None,
+            timestamp: float = None):
         self.index = index
-        self.timestamp = time.time()
+        self.timestamp = timestamp if timestamp is not None else time.time()
         self.transactions = transactions
-        self.previous_hash = previous_hash
         self.proof = proof
-        self.hash = self.hash_block(self)
+        self.previous_hash = previous_hash
+        self.hash = hash if hash is not None else self.hash_block(self)
 
     @staticmethod
     def hash_block(block: 'Block') -> str:
@@ -23,7 +30,7 @@ class Block:
         """
 
         encoded_block = f'{block.index}{block.timestamp}{block.transactions}' \
-            f'{block.previous_hash}{block.proof}'.encode()
+            f'{block.proof}{block.previous_hash}'.encode()
 
         return sha256(encoded_block).hexdigest()
 
@@ -37,6 +44,9 @@ class Block:
         :return: <bool> True if the block is valid, False otherwise.
         """
 
+        if block is None or previous_block is None:
+            return False
+
         if block.index != previous_block.index + 1:
             return False
 
@@ -47,3 +57,12 @@ class Block:
             return False
 
         return True
+
+    def __str__(self) -> str:
+        return f'{{ index: {self.index}, timestamp: {self.timestamp}, ' \
+            f'transactions: {self.transactions}, ' \
+            f'proof: {self.proof}, previous_hash: {self.previous_hash}, '\
+            f'hash: {self.hash} }}'
+
+    def __repr__(self) -> str:
+        return self.__str__()

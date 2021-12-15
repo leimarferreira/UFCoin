@@ -15,13 +15,16 @@ blockchain = Blockchain()
 @app.route('/mine', methods=['GET'])
 def mineblock():
 
-    # minerar novo block
+    # minerar novo bloco
     last_block = blockchain.last_block
     last_proof = last_block.proof
     proof = blockchain.proof_of_work(last_proof)
 
     blockchain.create_transaction(
-        sender='0', receiver=node_identifier, amount=5)
+        sender='0',
+        receiver=node_identifier,
+        amount=5
+    )
 
     generated_block = blockchain.create_block(proof=proof)
 
@@ -37,18 +40,18 @@ def mineblock():
     return jsonify(response), 201
 
 
-@app.route("/transaction/new", methods=["GET"])
+@app.route("/transaction/new", methods=["POST"])
 def new_transaction():
     values = request.get_json()
 
-    required = ['sender', 'recipient', 'amount']
+    required = ['sender', 'receiver', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
 
     index = blockchain.create_transaction(
-        values['sender'], values['recipient'], values['amount'])
+        values['sender'], values['receiver'], values['amount'])
 
-    response = {'message': f'message will be added to block {index}'}
+    response = {'message': f'Transaction will be added to block {index}'}
     return jsonify(response), 200
 
 

@@ -10,3 +10,10 @@ class Transaction:
         # receiver are valid nodes. If yes, then validate if the sender has the
         # amount to be sent.
         pass
+
+    def __str__(self):
+        return f'{{ sender: {self.sender}, receiver: {self.receiver}, ' \
+            f'amount: {self.amount} }}'
+
+    def __repr__(self):
+        return self.__str__()
