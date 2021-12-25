@@ -14,14 +14,19 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.current_transactions = []
+        self.block_generation_inverval = 10  # in seconds
+        self.difficult_adjustment_interval = 10  # in blocks
+        self.difficult = 5
         self.nodes = set()
+        self.mining = False
 
         # Criar bloco genêsis
         genesis = Block(
             index=0,
             transactions=[],
             previous_hash=None,
-            proof=self.get_proof()
+            proof=1,
+            difficult=self.difficult
         )
         self.chain.append(genesis)
 
@@ -37,15 +42,20 @@ class Blockchain:
             index=last_block.index + 1,
             transactions=self.current_transactions,
             previous_hash=last_block.hash,
-            proof=proof)
-
-        if not Block.is_valid_block(block, last_block):
-            return None
-
-        self.current_transactions = []
-        self.chain.append(block)
+            proof=proof,
+            difficult=self.difficult
+        )
 
         return block
+
+    def append_block(self, block) -> bool:
+        last_block = self.last_block
+        if Block.is_valid_block(block, last_block):
+            self.chain.append(block)
+            # TODO: broadcast the new block
+            return True
+
+        return False
 
     def create_transaction(self, sender, receiver, amount) -> int:
         """
@@ -74,45 +84,74 @@ class Blockchain:
         parsed_url = urlparse(address)
         self.nodes.add(parsed_url.netloc)
 
-    # TODO: implement a better proof of work
-    def proof_of_work(self, last_proof):
-        """
-        Proof of Work algorithm.
-        - Find a number x such that hash(x * y) has 5 leading zeroes.
-        - x is the current proof and y is the proof of the previous block.
-        :param last_proof: <int> Proof of Work of the last block mined.
-        :return: <int> Proof of Work of the current block.
-        """
+    def get_difficult(self):
+        if (self.last_block.index % self.difficult_adjustment_interval == 0
+                and self.last_block.index != 0):
+            self.adjust_difficult()
 
-        proof = self.get_proof()
-        while self.validate_proof(last_proof, proof) is False:
-            proof = self.get_proof()
+        return self.difficult
 
-        return proof
+    def adjust_difficult(self):
+        previous_adjustment_block = self.chain[-self.difficult_adjustment_interval]
+        time_expected = self.block_generation_inverval * \
+            self.difficult_adjustment_interval
+        time_taken = self.last_block.timestamp - previous_adjustment_block.timestamp
 
-    @staticmethod
-    def get_proof():
-        """
-        Get a proof value.
-        :return: <int> Random generated value.
-        """
-
-        seed()
-        return randint(1, sys.maxsize)
+        if time_taken < time_expected / 2:
+            self.difficult += 1
+        elif time_taken > time_expected * 2:
+            self.difficult -= 1
 
     @staticmethod
-    def validate_proof(last_proof, proof):
+    def get_accumulated_difficult(chain):
+        return sum([2 ** block.difficult for block in chain])
+
+    def validate_hash(self, block: Block) -> bool:
         """
-        Validates if the hash of proof * last proof contains at least 5 leading
-        zeroes.
-        :param last_proof: <int> Proof of the previous block.
-        :param proof: <int> Current proof.
-        :return: <bool> True if the condition is met, otherwise False.
+        Validates if the block hash has a leading quantity of zeroes, where the
+        quantity is determined by the current difficult.
+        """
+        difficult = self.get_difficult()
+        return block.hash[:difficult] == "0" * difficult
+
+    def find_block(self) -> Block:
+        """
+        Proof of Work algorithm. Try to find a block whose hash matches the
+        current difficult.
+        :return: <Block> Block found.
         """
 
-        number_of_zeroes = 5
-        hash = sha256(str(proof * last_proof).encode()).hexdigest()
-        return hash[:5] == "0" * number_of_zeroes
+        proof = 0
+        block = self.create_block(proof)
+        while self.validate_hash(block) is False:
+            proof += 1
+            block = self.create_block(proof)
+
+        return block
+
+    def mine(self):
+        if self.mining:
+            return
+
+        self.mining = True
+
+        while self.mining:
+            block = self.find_block()
+
+            self.append_block(block)
+
+            # Reset current transactions
+            self.current_transactions = []
+
+            # Create a transaction to be added to the next block
+            self.create_transaction(
+                sender='0',
+                receiver='self.node_identifier',
+                amount=5
+            )
+
+    def stop_mining(self):
+        self.mining = False
 
     def is_chain_valid(self, chain):
         last_block = chain[0]
@@ -124,13 +163,15 @@ class Blockchain:
             if not Block.is_valid_block(block, last_block):
                 return False
 
-            if not self.validate_proof(last_block.proof, block.proof):
-                return False
-
             last_block = block
             current_index += 1
 
         return True
+
+    def replace_chain(self, chain):
+        if self.is_chain_valid(chain) and self.get_accumulated_difficult(chain) > self.get_accumulated_difficult(self.chain):
+            self.chain = chain
+            # TODO: broadcast the new chain
 
     def resolve_conflicts(self):
 
@@ -156,10 +197,6 @@ class Blockchain:
 
         return False
 
-    @property
-    def last_block(self):
-        return self.chain[-1]
-
     @staticmethod
     def __from_json(obj):
         if 'transactions' in obj.keys():
@@ -169,4 +206,9 @@ class Blockchain:
         if 'chain' in obj.keys():
             chain = obj['chain']
             obj['chain'] = [Block(**block) for block in chain]
+
         return obj
+
+    @property
+    def last_block(self) -> Block:
+        return self.chain[-1]
