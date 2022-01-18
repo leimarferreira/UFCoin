@@ -31,8 +31,8 @@ class Block:
         :return: <str> The hash of the block.
         """
 
-        encoded_block = f'{block.index}{block.timestamp}{block.transactions}' \
-            f'{block.proof}{block.difficult}{block.previous_hash}'.encode()
+        encoded_block = f'{block.index}{block.timestamp}{block.proof}'\
+            f'{block.difficult}{block.previous_hash}'.encode()
 
         return sha256(encoded_block).hexdigest()
 

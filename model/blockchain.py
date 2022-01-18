@@ -1,20 +1,16 @@
-import sys
-from hashlib import sha256
-from random import randint, seed
 from urllib.parse import urlparse
 
 import requests
 
 from model import Block, Transaction
-
-# TODO: Add docstring comments in all the functions.
+from model.transaction import process_transactions, get_coinbase_transaction
 
 
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.current_transactions = []
-        self.block_generation_inverval = 10  # in seconds
+        self.block_generation_inverval = 1  # in milliseconds
         self.difficult_adjustment_interval = 10  # in blocks
         self.difficult = 5
         self.nodes = set()
@@ -37,10 +33,12 @@ class Blockchain:
         :return: <Block> Block created.
         """
 
+        coinbase_transaction = get_coinbase_transaction('', self.last_block.index + 1)
+
         last_block = self.last_block
         block = Block(
             index=last_block.index + 1,
-            transactions=self.current_transactions,
+            transactions=[coinbase_transaction],
             previous_hash=last_block.hash,
             proof=proof,
             difficult=self.difficult
@@ -48,10 +46,17 @@ class Blockchain:
 
         return block
 
-    def append_block(self, block) -> bool:
+    def append_block(self, block: Block) -> bool:
         last_block = self.last_block
         if Block.is_valid_block(block, last_block):
+            unspent_outputs = process_transactions(
+                block.transactions, self.current_transactions, block.index)
+
+            if unspent_outputs == None:
+                return False
+
             self.chain.append(block)
+            self.current_transactions = unspent_outputs
             # TODO: broadcast the new block
             return True
 
@@ -137,18 +142,7 @@ class Blockchain:
 
         while self.mining:
             block = self.find_block()
-
             self.append_block(block)
-
-            # Reset current transactions
-            self.current_transactions = []
-
-            # Create a transaction to be added to the next block
-            self.create_transaction(
-                sender='0',
-                receiver='self.node_identifier',
-                amount=5
-            )
 
     def stop_mining(self):
         self.mining = False
