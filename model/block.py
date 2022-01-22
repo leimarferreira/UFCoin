@@ -11,6 +11,7 @@ class Block:
             index: int,
             transactions: List[Transaction],
             proof: int,
+            difficult: int,
             previous_hash: str,
             hash: str = None,
             timestamp: float = None):
@@ -18,6 +19,7 @@ class Block:
         self.timestamp = timestamp if timestamp is not None else time.time()
         self.transactions = transactions
         self.proof = proof
+        self.difficult = difficult
         self.previous_hash = previous_hash
         self.hash = hash if hash is not None else self.hash_block(self)
 
@@ -29,8 +31,8 @@ class Block:
         :return: <str> The hash of the block.
         """
 
-        encoded_block = f'{block.index}{block.timestamp}{block.transactions}' \
-            f'{block.proof}{block.previous_hash}'.encode()
+        encoded_block = f'{block.index}{block.timestamp}{block.proof}'\
+            f'{block.difficult}{block.previous_hash}'.encode()
 
         return sha256(encoded_block).hexdigest()
 
@@ -61,7 +63,8 @@ class Block:
     def __str__(self) -> str:
         return f'{{ index: {self.index}, timestamp: {self.timestamp}, ' \
             f'transactions: {self.transactions}, ' \
-            f'proof: {self.proof}, previous_hash: {self.previous_hash}, '\
+            f'proof: {self.proof}, difficult: {self.difficult}, ' \
+            f'previous_hash: {self.previous_hash}, '\
             f'hash: {self.hash} }}'
 
     def __repr__(self) -> str:

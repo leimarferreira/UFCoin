@@ -1,4 +1,4 @@
-from re import T
+from threading import Thread
 from uuid import uuid4
 
 from flask import Flask, jsonify, render_template, request
@@ -15,30 +15,20 @@ blockchain = Blockchain()
 
 @app.route('/mine', methods=['GET'])
 def mineblock():
+    args = request.args
 
-    # minerar novo bloco
-    last_block = blockchain.last_block
-    last_proof = last_block.proof
-    proof = blockchain.proof_of_work(last_proof)
+    if args is not None and args.get("stop") is not None:
+        blockchain.stop_mining()
+    else:
+        thread = Thread(target=blockchain.mine)
+        thread.daemon = True
+        thread.start()
 
-    blockchain.create_transaction(
-        sender='0',
-        receiver=node_identifier,
-        amount=5
-    )
-
-    generated_block = blockchain.create_block(proof=proof)
-
-    # retornar uma resposta para o cliente (navegador ou Postman)
     response = {
-        'message': "Block mined",
-        'index': generated_block.index,
-        'timestamp': generated_block.timestamp,
-        'proof': generated_block.proof,
-        'previous block': generated_block.previous_hash
+        'mining': blockchain.mining
     }
 
-    return jsonify(response), 201
+    return jsonify(response), 200
 
 
 @app.route("/transaction/new", methods=["POST"])
