@@ -1,6 +1,7 @@
+from re import T
 from uuid import uuid4
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from model import Blockchain
 from utils import CustomJSONEncoder
 
@@ -61,8 +62,14 @@ def get_chain():
         'chain': blockchain.chain,
         'length': len(blockchain.chain)
     }
+    coins = 0
+    print("Counting coins")
+    for node in blockchain.chain :
+        for tr in node.__dict__['transactions'] : 
+            coins = coins + int(tr.__dict__['amount'])
 
-    return jsonify(response,), 200
+    return render_template('chain.html', value=str(coins), message=response), 200
+    # return jsonify(response,), 200
 
 
 @app.route("/nodes/register", methods=["POST"])
