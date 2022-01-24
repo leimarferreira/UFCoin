@@ -1,7 +1,6 @@
 from typing import List
 from functools import reduce
 from hashlib import sha256
-import re
 import rsa
 
 COINBASE_AMOUNT = 5
@@ -263,12 +262,10 @@ def process_transactions(
     return update_unspent_transaction_outputs(transactions, unspent_outputs)
 
 
-def to_hex_string():
-    pass
-
-
 def get_public_key(private_key):
-    pass
+    priv_key = rsa.PrivateKey.load_pkcs1(bytes.fromhex(private_key), "DER")
+    pub_key = rsa.PublicKey(priv_key.n, priv_key.e)
+    return pub_key.save_pkcs1("DER").hex()
 
 
 def is_valid_input_structure(input: TransactionInput):
@@ -321,4 +318,3 @@ def is_valid_transaction_structure(transaction: Transaction):
             return False
 
     return True
-

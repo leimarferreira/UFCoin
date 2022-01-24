@@ -4,6 +4,7 @@ import requests
 
 from model import Block, Transaction
 from model.transaction import process_transactions, get_coinbase_transaction
+from model.wallet import get_public_key_from_wallet
 
 
 class Blockchain:
@@ -12,7 +13,7 @@ class Blockchain:
         self.current_transactions = []
         self.block_generation_inverval = 1  # in milliseconds
         self.difficult_adjustment_interval = 10  # in blocks
-        self.difficult = 5
+        self.difficult = 1
         self.nodes = set()
         self.mining = False
 
@@ -33,7 +34,9 @@ class Blockchain:
         :return: <Block> Block created.
         """
 
-        coinbase_transaction = get_coinbase_transaction('', self.last_block.index + 1)
+        pub_key = get_public_key_from_wallet()
+        coinbase_transaction = get_coinbase_transaction(
+            pub_key, self.last_block.index + 1)
 
         last_block = self.last_block
         block = Block(
