@@ -11,9 +11,9 @@ class Blockchain:
     def __init__(self):
         self.chain = []
         self.current_transactions = []
-        self.block_generation_inverval = 1  # in milliseconds
+        self.block_generation_inverval = 10000  # in milliseconds
         self.difficult_adjustment_interval = 10  # in blocks
-        self.difficult = 1
+        self.difficult = 4
         self.nodes = set()
         self.mining = False
 

@@ -129,9 +129,11 @@ def validate_block_transactions(
     if has_duplicates(inputs):
         return False
 
-    for transaction in transactions:
+    for transaction in transactions[1:]:
         if not validate_transaction(transaction, unspent_outputs):
             return False
+
+    return True
 
 
 def has_duplicates(inputs: List[TransactionInput]):
@@ -216,7 +218,7 @@ def sign_input(
 
 
 def update_unspent_transaction_outputs(
-    new_transactions: List["Transaction"],
+    new_transactions: List[Transaction],
     unspent_transaction_outputs: List[UnspentTransactionOutput],
 ):
     new_unspent_transactions = []
