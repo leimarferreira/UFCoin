@@ -17,10 +17,10 @@
             <a href="chain">Chain</a>
         </div>
         <div id="container">
-            <img src="../static/img/pick.png" alt="">
-            {% if message %}
+            <img src="../static/img/wallet.png" alt="">
+            {% if value %}
             <p id="text-center">
-                minerando...
+                ${{ value | safe }} UFCoins
             </p>
             {% endif %}
         </div>
