@@ -5,21 +5,23 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" href="../static/chain.css">
+    <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
-    <div id="header">
-        <h1 id="header">UFCoin</h1>
-    </div>
-    <div id="container">
-        {% if value %}
-        <Textarea class="textarea" name="coins" id="cons" cols="10" rows="1">UFCoins: ${{ value | safe }}</Textarea>
-        {% endif %}
-        <label for="chain">chain</label>
-        {% if message %}
-        <textarea class="textarea" name="chain" id="chain" cols="30" rows="30">{{ message | safe }}</textarea>
-        {% endif %}
-        <a href="./index.html">back</a>
+    <div id="page-content">
+        <div id="side-menu">
+            <a href="/">Inicio</a>
+            <a href="mine">Minerar</a>
+            <a href="transaction/new">Transacao</a>
+            <a href="wallet">Carteira</a>
+            <a href="chain">Chain</a>
+        </div>
+        <div id="container">
+            <label for="chain">chain</label>
+            {% if chain %}
+            <textarea class="textarea" name="chain" id="chain" cols="30" rows="30">{{ chain | safe }}</textarea>
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>

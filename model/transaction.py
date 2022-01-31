@@ -26,7 +26,10 @@ class TransactionInput:
         self.signature = signature
 
     def __str__(self) -> str:
-        return f'{self.output_id}{self.output_index}'
+        return f'{self.output_id}eex{self.output_index}'
+
+    def __repr__(self) -> str:
+        return f'{self.output_id}eex{self.output_index}'
 
 
 class UnspentTransactionOutput:

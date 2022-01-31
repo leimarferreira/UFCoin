@@ -1,0 +1,39 @@
+* {
+	padding: 10;
+    margin-top: 50px;
+}
+
+body {
+    background: #453D75;
+}
+
+#page-content {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    height: 100%;
+
+}
+
+#container {
+    display: flex;
+    flex-direction: column;
+    color: #FFF;
+    margin-left: 35%;
+    border-radius: 25px;
+}
+
+
+#text-center {
+    font-size: 20px;
+}
+
+#side-menu {
+    display: flex;
+    flex-direction: column;
+    width: 150px;
+    background-color: #FFF;
+    background: #FFF;
+    padding: 10px;
+    border-radius: 25px;
+}
