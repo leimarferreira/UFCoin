@@ -1,11 +1,9 @@
 import asyncio
-from cgitb import handler
 import json
-from urllib.parse import urlparse
 from typing import Any, List
 
 import websockets
-from model import Block, Blockchain, blockchain
+from model import Block
 from model.transaction_pool import get_transaction_pool
 from utils import CustomJSONEncoder
 
@@ -26,7 +24,7 @@ class Message:
 
 
 sockets = set()
-blockchain: Blockchain = None
+blockchain = None
 
 
 def get_sockets():
@@ -76,7 +74,7 @@ async def handler(websocket):
             for transaction in transactions:
                 try:
                     handle_received_transaction(transaction)
-                    await broadcast_transaction_pool()
+                    broadcast_transaction_pool()
                 except:
                     pass
 
@@ -85,9 +83,9 @@ async def write(websocket, message):
     await websocket.send(json.dumps(message))
 
 
-async def broadcast(message):
-    for socket in sockets:
-        await write(socket, message)
+def broadcast(message):
+    websockets.broadcast(sockets, bytes(
+        json.dumps(message, cls=CustomJSONEncoder), encoding='utf-8'))
 
 
 def query_chain_length():
@@ -107,7 +105,7 @@ def response_chain():
 def response_latest():
     return Message(
         type=MessageType.RESPONSE_LATEST_BLOCK,
-        data=json.dumps(blockchain.last_block))
+        data=json.dumps(blockchain.last_block, cls=CustomJSONEncoder))
 
 
 def query_transaction_pool():
@@ -121,7 +119,7 @@ def response_transaction_pool():
     )
 
 
-async def handle_blockchain_response(blocks: List[Block]):
+def handle_blockchain_response(blocks: List[Block]):
     if len(blocks) == 0:
         return
 
@@ -132,13 +130,13 @@ async def handle_blockchain_response(blocks: List[Block]):
         if last_block_received.previous_hash == last_block_held.hash:
             blockchain.append_block(last_block_received)
         elif len(blocks) == 1:
-            await broadcast(query_all())
+            broadcast(query_all())
         else:
             blockchain.replace_chain(blocks)
 
 
-async def broadcast_latest():
-    await broadcast(response_latest())
+def broadcast_latest():
+    broadcast(response_latest())
 
 
 async def connect_to_peer(uri):
@@ -146,8 +144,8 @@ async def connect_to_peer(uri):
         await init_connection(websocket)
 
 
-async def broadcast_transaction_pool():
-    await broadcast(response_transaction_pool())
+def broadcast_transaction_pool():
+    broadcast(response_transaction_pool())
 
 
 async def main():
@@ -155,7 +153,7 @@ async def main():
         await asyncio.Future()
 
 
-def init(chain: Blockchain):
+def init(chain):
     global blockchain
     blockchain = chain
     asyncio.run(main())

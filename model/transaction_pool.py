@@ -1,8 +1,8 @@
 from copy import deepcopy
 from typing import List
 
-from transaction import (Transaction, TransactionInput,
-                         UnspentTransactionOutput, validate_transaction)
+from .transaction import (Transaction, TransactionInput,
+                          UnspentTransactionOutput, validate_transaction)
 
 transaction_pool: List[Transaction] = []
 

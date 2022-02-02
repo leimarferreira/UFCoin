@@ -2,27 +2,33 @@ from threading import Thread
 from uuid import uuid4
 
 from flask import Flask, jsonify, render_template, request
-from model import Blockchain
+from model.blockchain import Blockchain
+from model.wallet import get_public_key_from_wallet, get_balance
 from utils import CustomJSONEncoder
+from network.p2p_server import connect_to_peer
 
 app = Flask(__name__)
 app.json_encoder = CustomJSONEncoder
 
 node_identifier = str(uuid4()).replace('-', '')
 
-blockchain = Blockchain()
+blockchain: Blockchain = None
+
 
 @app.route('/')
 def index():
     return render_template('index.html'), 200
 
+
 @app.route('/wallet')
 def wallet():
     return render_template('wallet.html'), 200
 
+
 @app.route('/transaction/new/')
 def add():
     return render_template('transaction.html'), 200
+
 
 @app.route('/mine', methods=['GET'])
 def mineblock():
@@ -40,8 +46,9 @@ def mineblock():
     }
     return render_template('mine.html', message=response), 200
 
+
 @app.route("/transaction/new/add", methods=["POST"])
-def new_transaction():    
+def new_transaction():
     if request.method == 'POST':
         sender = request.form['sender']
         receiver = request.form['receiver']
@@ -49,25 +56,12 @@ def new_transaction():
 
         if not sender or not receiver or not amount:
             return 'Missing values', 400
-        
-        index = blockchain.create_transaction(
-            sender, receiver, amount
-        )
 
-        response = {'message': f'Transaction will be added to block {index}'}
+        blockchain.send_transaction(receiver, int(amount))
+
+        response = {
+            'message': f'Transaction will be added to the next mined block.'}
         return render_template('transaction.html', message=response), 200
-        
-        # values = request.get_json()
-
-        # required = ['sender', 'receiver', 'amount']
-        # if not all(k in values for k in required):
-        #     return 'Missing values', 400
-
-        # index = blockchain.create_transaction(
-        #     values['sender'], values['receiver'], values['amount'])
-
-        # response = {'message': f'Transaction will be added to block {index}'}
-        # return jsonify(response), 200
 
 
 @app.route('/chain', methods=['GET'])
@@ -76,14 +70,7 @@ def get_chain():
         'chain': blockchain.chain,
         'length': len(blockchain.chain)
     }
-    coins = 0
-    print("Counting coins")
-    for tr in range(len(blockchain.chain)):
-        print(blockchain.chain[tr].__dict__['transactions'])
-    # for node in blockchain.chain :
-    #     for tr in node.__dict__['transactions'] : 
-    #         print(tr)
-    #         # coins = coins + int(tr.__dict__['amount'])
+    coins = blockchain.get_account_balance()
 
     return render_template('chain.html', chain=blockchain.chain), 200
     # return jsonify(response,), 200
@@ -91,22 +78,9 @@ def get_chain():
 
 @app.route("/nodes/register", methods=["POST"])
 def register_node():
-    values = request.get_json()
-
-    nodes = values.get('nodes')
-
-    if nodes is None:
-        return "Error: Please supply a valid list of nodes", 400
-
-    for node in nodes:
-        blockchain.register_node(node)
-
-    response = {
-        'message': 'New nodes have been added',
-        'total_nodes': list(blockchain.nodes),
-    }
-
-    return jsonify(response), 201
+    node = request.values['node']
+    connect_to_peer(node)
+    return 201
 
 
 @app.route("/nodes/resolve", methods=["GET"])
@@ -128,5 +102,29 @@ def consensus():
     return jsonify(response), 200
 
 
-def run(port):
+@app.route("/address", methods=["GET"])
+def get_address():
+    address = get_public_key_from_wallet()
+
+    response = {
+        'address': address
+    }
+
+    return jsonify(response), 200
+
+
+@app.route("/balance", methods=["GET"])
+def balance():
+    balance = blockchain.get_account_balance()
+
+    response = {
+        'balance': balance
+    }
+
+    return jsonify(response), 200
+
+
+def run(port, chain):
+    global blockchain
+    blockchain = chain
     app.run('localhost', port)

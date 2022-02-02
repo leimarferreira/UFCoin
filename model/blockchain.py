@@ -1,16 +1,20 @@
+from numbers import Number
 from urllib.parse import urlparse
 
 import requests
 
 from model import Block, Transaction
-from model.transaction import process_transactions, get_coinbase_transaction
-from model.wallet import get_public_key_from_wallet
+from model.transaction_pool import get_transaction_pool
+from model.wallet import get_public_key_from_wallet, find_unspent_outputs
+from network.p2p_server import broadcast_latest, broadcast_transaction_pool
+from model.transaction import TransactionInput, TransactionOutput, UnspentTransactionOutput, process_transactions, get_coinbase_transaction
+from model.transaction_pool import add_to_transaction_pool, get_transaction_pool, update_transaction_pool
+from model.wallet import create_transaction, find_unspent_outputs, get_balance, get_priv_key, get_public_key_from_wallet
 
 
 class Blockchain:
     def __init__(self):
         self.chain = []
-        self.current_transactions = []
         self.block_generation_inverval = 10000  # in milliseconds
         self.difficult_adjustment_interval = 10  # in blocks
         self.difficult = 4
@@ -26,6 +30,7 @@ class Blockchain:
             difficult=self.difficult
         )
         self.chain.append(genesis)
+        self.unspent_transactions = []
 
     def create_block(self, proof: int) -> Block:
         """
@@ -53,44 +58,25 @@ class Blockchain:
         last_block = self.last_block
         if Block.is_valid_block(block, last_block):
             unspent_outputs = process_transactions(
-                block.transactions, self.current_transactions, block.index)
+                block.transactions, self.unspent_transactions, block.index)
 
             if unspent_outputs == None:
                 return False
 
             self.chain.append(block)
-            self.current_transactions = unspent_outputs
-            # TODO: broadcast the new block
+            self.unspent_transactions = unspent_outputs
+            broadcast_latest()
             return True
 
         return False
 
-    def create_transaction(self, sender, receiver, amount) -> int:
-        """
-        Creates a new transaction.
-        :param sender: <str> The identifier of the sender node.
-        :param receiver: <str> The identifier of the receiver node.
-        :param amount: <int> Amount of cryptocurrencies to be sent.
-        :return: <int> The index of the block which the transaction will be
-        added to i.e. the next block to be mined.
-        """
+    def send_transaction(self, address: str, amount: int):
+        transaction = create_transaction(address, amount, get_priv_key(),
+                                         self.unspent_transactions, get_transaction_pool())
 
-        transaction = Transaction(
-            sender=sender,
-            receiver=receiver,
-            amount=amount
-        )
-        self.current_transactions.append(transaction)
-
-        return self.last_block.index + 1
-
-    def register_node(self, address) -> None:
-        """
-        Register a new node in the blockchain.
-        :param address: <str> Address of the node to be registered.
-        """
-        parsed_url = urlparse(address)
-        self.nodes.add(parsed_url.netloc)
+        add_to_transaction_pool(transaction, self.unspent_transactions)
+        broadcast_transaction_pool()
+        return transaction
 
     def get_difficult(self):
         if (self.last_block.index % self.difficult_adjustment_interval == 0
@@ -168,7 +154,6 @@ class Blockchain:
     def replace_chain(self, chain):
         if self.is_chain_valid(chain) and self.get_accumulated_difficult(chain) > self.get_accumulated_difficult(self.chain):
             self.chain = chain
-            # TODO: broadcast the new chain
 
     def resolve_conflicts(self):
 
@@ -193,6 +178,18 @@ class Blockchain:
             return True
 
         return False
+
+    def get_unspent_transactions(self):
+        return find_unspent_outputs(get_public_key_from_wallet(), self.get_unspent_transactions())
+
+    def get_account_balance(self):
+        print(self.unspent_transactions)
+        pub_key = get_public_key_from_wallet()
+        result = get_balance(pub_key, self.unspent_transactions)
+        return result
+
+    def handle_received_transaction(self, transaction):
+        add_to_transaction_pool(transaction, self.unspent_transactions)
 
     @staticmethod
     def __from_json(obj):

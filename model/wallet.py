@@ -49,11 +49,20 @@ def get_priv_key():
         return None
 
 
+def find_unspent_outputs(address: str, unspent_outputs: List[UnspentTransactionOutput]):
+    outputs = []
+    for item in unspent_outputs:
+        if item.address == address:
+            outputs.append(item)
+
+    return outputs
+
+
 def get_balance(address: str, unspent_outputs: List[UnspentTransactionOutput]):
     balance = 0
-    for output in unspent_outputs:
-        if output.address == address:
-            balance += output.amount
+    outputs = find_unspent_outputs(address, unspent_outputs)
+    for output in outputs:
+        balance += output.amount
 
     return balance
 
@@ -81,13 +90,36 @@ def create_outputs(receiver_addr, my_addr, amount, leftover_amount):
     return [output, leftover_transaction]
 
 
-def create_transaction(receiver_addr, amount, priv_key, unspent_outputs):
+def filter_transaction_pool(unspent_outputs, transaction_pool):
+    inputs = []
+    for transaction in transaction_pool:
+        inputs.extend(transaction.inputs)
+
+    removable = []
+    for unspent_output in unspent_outputs:
+        input = None
+
+        for a_input in inputs:
+            if a_input.output_index == unspent_output.output_index and a_input.output_id == unspent_output.output_id:
+                input = a_input
+                break
+
+        if input is not None:
+            removable.append(unspent_output)
+
+    return list(set(unspent_outputs) - set(removable))
+
+
+def create_transaction(receiver_addr, amount, priv_key, unspent_outputs, transaction_pool):
     my_addr = get_public_key(priv_key)
 
     my_unspent_outputs = []
     for unspent_output in unspent_outputs:
         if unspent_output.address == my_addr:
             my_unspent_outputs.append(unspent_output)
+
+    my_unspent_outputs = filter_transaction_pool(
+        my_unspent_outputs, transaction_pool)
 
     included_unspent_outputs, leftover_amount = find_outputs_for_amount(
         amount, my_unspent_outputs)
@@ -103,7 +135,7 @@ def create_transaction(receiver_addr, amount, priv_key, unspent_outputs):
 
     for i in range(len(transaction.inputs)):
         input = transaction.inputs[i]
-        input.signature = sign_input(transaction, i, priv_key, unspent_output)
+        input.signature = sign_input(transaction, i, priv_key, unspent_outputs)
         transaction.inputs[i] = input
 
     return transaction
