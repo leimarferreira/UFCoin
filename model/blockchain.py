@@ -1,15 +1,11 @@
-from numbers import Number
-from urllib.parse import urlparse
-
 import requests
+from network.p2p_server import broadcast_latest, connect_to_peer, broadcast_transaction
 
 from model import Block, Transaction
-from model.transaction_pool import get_transaction_pool
-from model.wallet import get_public_key_from_wallet, find_unspent_outputs
-from network.p2p_server import broadcast_latest, broadcast_transaction_pool
-from model.transaction import TransactionInput, TransactionOutput, UnspentTransactionOutput, process_transactions, get_coinbase_transaction
-from model.transaction_pool import add_to_transaction_pool, get_transaction_pool, update_transaction_pool
-from model.wallet import create_transaction, find_unspent_outputs, get_balance, get_priv_key, get_public_key_from_wallet
+from model.transaction import Transaction, is_valid_transaction, create_transaction
+from model.transaction import get_coinbase_transaction, is_valid_transaction
+from model.wallet import (create_transaction, get_balance, get_priv_key,
+                          get_public_key)
 
 
 class Blockchain:
@@ -25,7 +21,7 @@ class Blockchain:
         genesis = Block(
             index=0,
             transactions=[],
-            previous_hash=None,
+            previous_hash='',
             proof=1,
             difficult=self.difficult
         )
@@ -39,14 +35,17 @@ class Blockchain:
         :return: <Block> Block created.
         """
 
-        pub_key = get_public_key_from_wallet()
+        pub_key = get_public_key()
         coinbase_transaction = get_coinbase_transaction(
-            pub_key, self.last_block.index + 1)
+            pub_key)
+
+        transactions = [coinbase_transaction]
+        transactions.extend(self.unspent_transactions)
 
         last_block = self.last_block
         block = Block(
             index=last_block.index + 1,
-            transactions=[coinbase_transaction],
+            transactions=transactions,
             previous_hash=last_block.hash,
             proof=proof,
             difficult=self.difficult
@@ -57,26 +56,41 @@ class Blockchain:
     def append_block(self, block: Block) -> bool:
         last_block = self.last_block
         if Block.is_valid_block(block, last_block):
-            unspent_outputs = process_transactions(
-                block.transactions, self.unspent_transactions, block.index)
-
-            if unspent_outputs == None:
-                return False
-
             self.chain.append(block)
-            self.unspent_transactions = unspent_outputs
+            self.unspent_transactions = []
             broadcast_latest()
             return True
 
         return False
 
-    def send_transaction(self, address: str, amount: int):
-        transaction = create_transaction(address, amount, get_priv_key(),
-                                         self.unspent_transactions, get_transaction_pool())
+    def append_transaction(self, transaction):
+        if is_valid_transaction(transaction):
+            self.unspent_transactions.append(transaction)
 
-        add_to_transaction_pool(transaction, self.unspent_transactions)
-        broadcast_transaction_pool()
+    def get_all_transactions(self):
+        transactions = []
+        for block in self.chain:
+            transactions.extend(block.transactions)
+
+        return transactions
+
+    def send_transaction(self, address: str, amount: int):
+        transactions = self.get_all_transactions()
+        transaction = create_transaction(
+            address, amount, get_priv_key(), transactions)
+
+        if transaction is None:
+            return None
+
+        if not is_valid_transaction(transaction):
+            return None
+
+        self.append_transaction(transaction)
+        broadcast_transaction(transaction)
         return transaction
+
+    def register_node(self, address):
+        connect_to_peer(address)
 
     def get_difficult(self):
         if (self.last_block.index % self.difficult_adjustment_interval == 0
@@ -167,7 +181,7 @@ class Blockchain:
 
             if response.status_code == 200:
                 length = response.json()['length']
-                chain = response.json(object_hook=self.__from_json)['chain']
+                chain = response.json(object_hook=self.from_json)['chain']
 
                 if length > max_length and self.is_chain_valid(chain):
                     max_length = length
@@ -179,20 +193,17 @@ class Blockchain:
 
         return False
 
-    def get_unspent_transactions(self):
-        return find_unspent_outputs(get_public_key_from_wallet(), self.get_unspent_transactions())
-
     def get_account_balance(self):
-        print(self.unspent_transactions)
-        pub_key = get_public_key_from_wallet()
-        result = get_balance(pub_key, self.unspent_transactions)
+        pub_key = get_public_key()
+        transactions = []
+        for block in self.chain:
+            transactions.extend(block.transactions)
+
+        result = get_balance(pub_key, transactions)
         return result
 
-    def handle_received_transaction(self, transaction):
-        add_to_transaction_pool(transaction, self.unspent_transactions)
-
     @staticmethod
-    def __from_json(obj):
+    def from_json(obj):
         if 'transactions' in obj.keys():
             obj['transactions'] = [Transaction(
                 **transaction) for transaction in obj['transactions']]

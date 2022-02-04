@@ -1,11 +1,11 @@
+import sys
 from threading import Thread
 from uuid import uuid4
 
 from flask import Flask, jsonify, render_template, request
 from model.blockchain import Blockchain
-from model.wallet import get_public_key_from_wallet, get_balance
+from model.wallet import get_public_key
 from utils import CustomJSONEncoder
-from network.p2p_server import connect_to_peer
 
 app = Flask(__name__)
 app.json_encoder = CustomJSONEncoder
@@ -50,11 +50,10 @@ def mineblock():
 @app.route("/transaction/new/add", methods=["POST"])
 def new_transaction():
     if request.method == 'POST':
-        sender = request.form['sender']
         receiver = request.form['receiver']
         amount = request.form['amount']
 
-        if not sender or not receiver or not amount:
+        if not (receiver or amount):
             return 'Missing values', 400
 
         blockchain.send_transaction(receiver, int(amount))
@@ -73,14 +72,13 @@ def get_chain():
     coins = blockchain.get_account_balance()
 
     return render_template('chain.html', chain=blockchain.chain), 200
-    # return jsonify(response,), 200
 
 
 @app.route("/nodes/register", methods=["POST"])
 def register_node():
-    node = request.values['node']
-    connect_to_peer(node)
-    return 201
+    node = request.json['node']
+    blockchain.register_node(node)
+    return "ok", 201
 
 
 @app.route("/nodes/resolve", methods=["GET"])
@@ -104,7 +102,7 @@ def consensus():
 
 @app.route("/address", methods=["GET"])
 def get_address():
-    address = get_public_key_from_wallet()
+    address = get_public_key()
 
     response = {
         'address': address
@@ -127,4 +125,6 @@ def balance():
 def run(port, chain):
     global blockchain
     blockchain = chain
+    cli = sys.modules['flask.cli']
+    cli.show_server_banner = lambda *x: None
     app.run('localhost', port)

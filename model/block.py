@@ -1,6 +1,6 @@
 import time
 from hashlib import sha256
-from typing import Any, List
+from typing import List
 
 from model.transaction import Transaction
 

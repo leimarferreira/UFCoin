@@ -1,10 +1,11 @@
 import rsa
 import os
-from model.transaction import Transaction, TransactionInput, TransactionOutput, UnspentTransactionOutput, get_id, get_public_key, sign_input
-from typing import List
+from model.transaction import create_transaction as build_transaction
 import re
+import sys
+import random
 
-PRIV_KEY_PATH = '../wallet/privatekey'
+PRIV_KEY_PATH = f'../wallet/privatekey{random.randint(0, sys.maxsize)}'
 
 
 def generate_private_key():
@@ -27,7 +28,7 @@ def init_wallet():
         generate_private_key()
 
 
-def get_public_key_from_wallet():
+def get_public_key() -> str:
     pub_key = None
     try:
         priv_key_file = open(PRIV_KEY_PATH, 'r')
@@ -49,93 +50,33 @@ def get_priv_key():
         return None
 
 
-def find_unspent_outputs(address: str, unspent_outputs: List[UnspentTransactionOutput]):
-    outputs = []
-    for item in unspent_outputs:
-        if item.address == address:
-            outputs.append(item)
-
-    return outputs
+def get_pub_key_from_priv_key(priv_key):
+    priv_key = rsa.PrivateKey.load_pkcs1(bytes.fromhex(priv_key), "DER")
+    pub_key = rsa.PublicKey(priv_key.n, priv_key.e)
+    return pub_key.save_pkcs1("DER").hex()
 
 
-def get_balance(address: str, unspent_outputs: List[UnspentTransactionOutput]):
-    balance = 0
-    outputs = find_unspent_outputs(address, unspent_outputs)
-    for output in outputs:
-        balance += output.amount
+def get_balance(address: str, transactions):
+    received_amount = 0
+    sent_amount = 0
+    for transaction in transactions:
+        if transaction.sender == address:
+            sent_amount += transaction.amount
+        elif transaction.receiver == address:
+            received_amount += transaction.amount
 
+    balance = received_amount - sent_amount
     return balance
 
 
-def find_outputs_for_amount(amount, ouputs: List[UnspentTransactionOutput]):
-    current_amount = 0
-    included_unspent_outputs = []
-    for unspent_output in ouputs:
-        included_unspent_outputs.append(unspent_output)
-        current_amount += unspent_output.amount
+def create_transaction(receiver_addr, amount, priv_key, transactions):
+    my_addr = get_pub_key_from_priv_key(priv_key)
 
-        if current_amount >= amount:
-            leftover_amount = current_amount - amount
-            return (included_unspent_outputs, leftover_amount)
+    balance = get_balance(my_addr, transactions)
 
-    raise RuntimeError("Not enough coins to send transaction.")
+    if balance < amount:
+        return None
 
-
-def create_outputs(receiver_addr, my_addr, amount, leftover_amount):
-    output = TransactionOutput(receiver_addr, amount)
-    if leftover_amount == 0:
-        return [output]
-
-    leftover_transaction = TransactionOutput(my_addr, leftover_amount)
-    return [output, leftover_transaction]
-
-
-def filter_transaction_pool(unspent_outputs, transaction_pool):
-    inputs = []
-    for transaction in transaction_pool:
-        inputs.extend(transaction.inputs)
-
-    removable = []
-    for unspent_output in unspent_outputs:
-        input = None
-
-        for a_input in inputs:
-            if a_input.output_index == unspent_output.output_index and a_input.output_id == unspent_output.output_id:
-                input = a_input
-                break
-
-        if input is not None:
-            removable.append(unspent_output)
-
-    return list(set(unspent_outputs) - set(removable))
-
-
-def create_transaction(receiver_addr, amount, priv_key, unspent_outputs, transaction_pool):
-    my_addr = get_public_key(priv_key)
-
-    my_unspent_outputs = []
-    for unspent_output in unspent_outputs:
-        if unspent_output.address == my_addr:
-            my_unspent_outputs.append(unspent_output)
-
-    my_unspent_outputs = filter_transaction_pool(
-        my_unspent_outputs, transaction_pool)
-
-    included_unspent_outputs, leftover_amount = find_outputs_for_amount(
-        amount, my_unspent_outputs)
-
-    unsigned_inputs = []
-    for output in included_unspent_outputs:
-        input = TransactionInput(output.output_id, output.output_index, '')
-        unsigned_inputs.append(input)
-
-    outputs = create_outputs(receiver_addr, my_addr, amount, leftover_amount)
-    transaction = Transaction(None, unsigned_inputs, outputs)
-    transaction.id = get_id(transaction)
-
-    for i in range(len(transaction.inputs)):
-        input = transaction.inputs[i]
-        input.signature = sign_input(transaction, i, priv_key, unspent_outputs)
-        transaction.inputs[i] = input
+    transaction = build_transaction(priv_key, my_addr, receiver_addr, amount)
 
     return transaction
