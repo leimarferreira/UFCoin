@@ -22,7 +22,8 @@ def index():
 
 @app.route('/wallet')
 def wallet():
-    return render_template('wallet.html'), 200
+    coins = blockchain.get_account_balance()
+    return render_template('wallet.html', value=coins), 200
 
 
 @app.route('/transaction/new/')
@@ -68,9 +69,7 @@ def get_chain():
     response = {
         'chain': blockchain.chain,
         'length': len(blockchain.chain)
-    }
-    coins = blockchain.get_account_balance()
-
+    }    
     return render_template('chain.html', chain=blockchain.chain), 200
 
 
