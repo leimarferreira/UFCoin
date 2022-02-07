@@ -11,9 +11,9 @@ from model.wallet import (create_transaction, get_balance, get_priv_key,
 class Blockchain:
     def __init__(self):
         self.chain = []
-        self.block_generation_inverval = 10000  # in milliseconds
+        self.block_generation_inverval = 10  # in seconds
         self.difficult_adjustment_interval = 10  # in blocks
-        self.difficult = 4
+        self.difficult = 1
         self.nodes = set()
         self.mining = False
 
@@ -94,20 +94,22 @@ class Blockchain:
 
     def get_difficult(self):
         if (self.last_block.index % self.difficult_adjustment_interval == 0
-                and self.last_block.index != 0):
+                and self.last_block.index != 0
+                and self.last_block.difficult == self.difficult):
             self.adjust_difficult()
 
         return self.difficult
 
     def adjust_difficult(self):
         previous_adjustment_block = self.chain[-self.difficult_adjustment_interval]
+
         time_expected = self.block_generation_inverval * \
             self.difficult_adjustment_interval
         time_taken = self.last_block.timestamp - previous_adjustment_block.timestamp
 
-        if time_taken < time_expected / 2:
+        if time_taken < time_expected:
             self.difficult += 1
-        elif time_taken > time_expected * 2:
+        elif time_taken > time_expected:
             self.difficult -= 1
 
     @staticmethod
