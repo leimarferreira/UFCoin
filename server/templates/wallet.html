@@ -1,29 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="../static/style.css">
-</head>
-<body>
-    <div id="page-content">
-        <div id="side-menu">
-            <a href="/">Inicio</a>
-            <a href="mine">Minerar</a>
-            <a href="transaction/new">Transacao</a>
-            <a href="wallet">Carteira</a>
-            <a href="chain">Chain</a>
-        </div>
-        <div id="container">
-            <img src="../static/img/wallet.png" alt="">
-            {% if value %}
-            <p id="text-center">
-                ${{ value | safe }} UFCoins
-            </p>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
+{% extends 'base.html' %} {% block content %}
+<div id="container">
+  <img width="67px" height="76px" src="../static/img/wallet.png" alt="" />
+  {% if address %}
+  <p class="text-center tr-address"><strong>Endereço de transações:</strong> {{ address }}</p>
+  {% endif %}
+  <p class="text-center">
+    <strong>Saldo</strong>: {% if coins %} ${{ coins | safe }} UFCoins {% else %} 0 UFCoins {% endif %}
+  </p>
+</div>
+{% endblock %}

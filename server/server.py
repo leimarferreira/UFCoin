@@ -1,11 +1,15 @@
+import re
 import sys
+import webbrowser
+from ctypes import addressof
 from threading import Thread
 from uuid import uuid4
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request
 from model.blockchain import Blockchain
 from model.wallet import get_public_key
 from utils import CustomJSONEncoder
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 app.json_encoder = CustomJSONEncoder
@@ -17,18 +21,34 @@ blockchain: Blockchain = None
 
 @app.route('/')
 def index():
-    return render_template('index.html'), 200
+    response = {
+        'title': "Início",
+        'address': ip_address,
+        'http_port': _http_port,
+        'p2p_port': p2p_port
+    }
+
+    return render_template('index.html', **response), 200
 
 
 @app.route('/wallet')
 def wallet():
-    coins = blockchain.get_account_balance()
-    return render_template('wallet.html', value=coins), 200
+    response = {
+        'title': 'Carteira',
+        'coins': blockchain.get_account_balance(),
+        'address': get_public_key()
+    }
+
+    return render_template('wallet.html', **response), 200
 
 
 @app.route('/transaction/new/')
 def add():
-    return render_template('transaction.html'), 200
+    response = {
+        'title': "Transações"
+    }
+
+    return render_template('transaction.html', **response), 200
 
 
 @app.route('/mine', methods=['GET'])
@@ -43,9 +63,10 @@ def mineblock():
         thread.start()
 
     response = {
+        'title': 'Minerar',
         'mining': blockchain.mining
     }
-    return render_template('mine.html', message=response), 200
+    return render_template('mine.html', **response), 200
 
 
 @app.route("/transaction/new/add", methods=["POST"])
@@ -59,71 +80,61 @@ def new_transaction():
 
         blockchain.send_transaction(receiver, int(amount))
 
-        response = {
-            'message': f'Transaction will be added to the next mined block.'}
-        return render_template('transaction.html', message=response), 200
+        message = "A transação vai ser adicionada ao próximo bloco minerado."
+        return render_template('transaction.html', message=message), 200
 
 
 @app.route('/chain', methods=['GET'])
 def get_chain():
     response = {
+        'title': 'Blockchain',
         'chain': blockchain.chain,
         'length': len(blockchain.chain)
-    }    
-    return render_template('chain.html', chain=blockchain.chain), 200
+    }
+    return render_template('chain.html', **response), 200
 
 
-@app.route("/nodes/register", methods=["POST"])
+@app.route("/nodes/register", methods=["GET", "POST"])
 def register_node():
-    node = request.json['node']
-    blockchain.register_node(node)
-    return "ok", 201
-
-
-@app.route("/nodes/resolve", methods=["GET"])
-def consensus():
-    replaced = blockchain.resolve_conflicts()
-
-    if replaced:
-        response = {
-            "message": "Our blockchain has been replaced.",
-            "new_chain": blockchain.chain
-        }
-
-    else:
-        response = {
-            'message': 'Our chain is authoritative',
-            'chain': blockchain.chain
-        }
-
-    return jsonify(response), 200
-
-
-@app.route("/address", methods=["GET"])
-def get_address():
-    address = get_public_key()
+    if request.method == 'POST':
+        address = request.form['address']
+        if re.match('^ws://([0-9]{1,3}\\.){3}[0-9]{1,3}:[0-9]{1,5}$', address):
+            blockchain.register_node(address)
 
     response = {
-        'address': address
+        'peers': blockchain.get_nodes()
     }
 
-    return jsonify(response), 200
+    return render_template('peers.html', **response)
 
 
-@app.route("/balance", methods=["GET"])
-def balance():
-    balance = blockchain.get_account_balance()
-
+@app.errorhandler(HTTPException)
+def error(e):
     response = {
-        'balance': balance
+        'title': "Erro",
+        'message': "Ocorreu um erro durante realização da operação."
     }
+    return render_template("error.html", **response)
 
-    return jsonify(response), 200
+@app.errorhandler(404)
+def not_found(e):
+    response = {
+        'title': "Página não encontrada",
+        'message': "Página não encontrada."
+    }
+    return render_template("error.html", **response)
 
 
-def run(port, chain):
+def run(ip_addr, http_port, ws_port, chain):
+    global p2p_port
+    global _http_port
     global blockchain
+    global ip_address
+    ip_address = ip_addr
+    _http_port = http_port
+    p2p_port = ws_port
     blockchain = chain
+
     cli = sys.modules['flask.cli']
     cli.show_server_banner = lambda *x: None
-    app.run('localhost', port)
+    app.run(ip_addr, http_port)

@@ -1,9 +1,24 @@
+from concurrent.futures import thread
+import socket
 import sys
+from time import sleep
+import webbrowser
+from threading import Thread
+
 from model import wallet
 from model.blockchain import Blockchain
-from server import server
 from network import p2p_server
-from threading import Thread
+from server import server
+
+
+def get_ip_address():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('254.254.254.254', 1))
+        return s.getsockname()[0]
+    except:
+        return '127.0.0.1'
+
 
 if __name__ == '__main__':
     http_port = None
@@ -18,8 +33,15 @@ if __name__ == '__main__':
             p2p_port = 6000
 
     wallet.init_wallet()
+    ip = get_ip_address()
     blockchain = Blockchain()
-    thread = Thread(target=p2p_server.init, args=[p2p_port, blockchain])
-    thread.daemon = True
-    thread.start()
-    server.run(http_port, blockchain)
+    p2p_thread = Thread(target=p2p_server.init, args=[ip, p2p_port, blockchain])
+    p2p_thread.daemon = True
+    p2p_thread.start()
+
+    http_thread = Thread(target=server.run, args=[ip, http_port, p2p_port, blockchain])
+    http_thread.start()
+
+    sleep(2)
+
+    webbrowser.open(f'http://{ip}:{http_port}')

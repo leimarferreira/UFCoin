@@ -1,27 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="../static/style.css">
-</head>
-<body>
-    <div id="page-content">
-        <div id="side-menu">
-            <a href="/">Inicio</a>
-            <a href="mine">Minerar</a>
-            <a href="transaction/new">Transacao</a>
-            <a href="wallet">Carteira</a>
-            <a href="chain">Chain</a>
-        </div>
-        <div id="container">
-            <label for="chain">chain</label>
-            {% if chain %}
-            <textarea class="textarea" name="chain" id="chain" cols="30" rows="30">{{ chain | safe }}</textarea>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="container">
+    <h3>Blocos</h3>
+    <p>Quantidade de blocos: {{ length }}</p>
+    {% if chain %}
+        {% for block in chain %}
+            <p>Index: {{ block.index }}</p>
+            <p>Hash: {{ block.hash }}</p>
+            <p>Hash do bloco anterior: {{ block.previous_hash }}</p>
+            <p>Timestamp: {{ block.timestamp }}</p>
+            <p>Transações: </p>
+            {% for transaction in block.transactions %}
+                <div class="tr-info">
+                    <p>Remetente: {{ transaction.sender }}</p>
+                    <p>Destinatário: {{ transaction.receiver }}</p>
+                    <p>Quantidade: {{ transaction.amount }}</p>
+                    <p>Assinatura: {{ transaction.signature }}</p>
+                    </div>
+            {% endfor %}
+            <hr class="blk-hr">
+        {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

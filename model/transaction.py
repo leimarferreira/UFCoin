@@ -10,7 +10,7 @@ class Transaction:
         self.signature = signature
 
 
-COINBASE_AMOUNT = 50
+COINBASE_AMOUNT = 5
 
 
 def get_coinbase_transaction(receiver):

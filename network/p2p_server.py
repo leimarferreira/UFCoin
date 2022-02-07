@@ -204,15 +204,15 @@ def exec_async(task):
         event_loop.run_until_complete(task)
 
 
-async def main(port):
-    async with websockets.serve(handler, "", port):
+async def main(ip, port):
+    async with websockets.serve(handler, ip, port):
         await asyncio.Future()
 
 
-def init(p2p_port, chain):
+def init(ip, p2p_port, chain):
     global blockchain
     blockchain = chain
     global address
-    address = f'ws://localhost:{p2p_port}'
-    print(f'P2P server running on: ws://localhost:{p2p_port}', end='\n\n')
-    asyncio.run(main(p2p_port))
+    address = f'ws://{ip}:{p2p_port}'
+    print(f'P2P server running on: {address}', end='\n\n')
+    asyncio.run(main(ip, p2p_port))

@@ -1,5 +1,5 @@
 import requests
-from network.p2p_server import broadcast_latest, connect_to_peer, broadcast_transaction
+from network.p2p_server import broadcast_latest, connect_to_peer, broadcast_transaction, get_sockets
 
 from model import Block, Transaction
 from model.transaction import Transaction, is_valid_transaction, create_transaction
@@ -13,7 +13,7 @@ class Blockchain:
         self.chain = []
         self.block_generation_inverval = 10  # in seconds
         self.difficult_adjustment_interval = 10  # in blocks
-        self.difficult = 1
+        self.difficult = 5
         self.nodes = set()
         self.mining = False
 
@@ -91,6 +91,9 @@ class Blockchain:
 
     def register_node(self, address):
         connect_to_peer(address)
+
+    def get_nodes(self):
+        return get_sockets()
 
     def get_difficult(self):
         if (self.last_block.index % self.difficult_adjustment_interval == 0

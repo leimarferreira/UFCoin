@@ -1,0 +1,19 @@
+{% extends 'base.html' %} {% block content %}
+<div id="container">
+  <h3>Adicionar novo peer</h3>
+  <form action="/nodes/register" method="post">
+    <label for="address">Endereço P2P do peer:</label>
+    <input
+      id="address"
+      name="address"
+      type="text"
+      placeholder="ws://example:9999"
+    />
+    <input type="submit" value="Adicionar" />
+  </form>
+  <h3>Peers</h3>
+  {% for peer in peers %}
+  <p>{{peer}}</p>
+  {% endfor %}
+</div>
+{% endblock %}

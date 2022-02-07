@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css')}}">
+  </head>
+  <body>
+    <div id="page-content">
+      <div id="side-menu">
+        <a href="/">Inicio</a>
+        <a href="/mine">Minerar</a>
+        <a href="/nodes/register">Peers</a>
+        <a href="/transaction/new">Transacões</a>
+        <a href="/wallet">Carteira</a>
+        <a href="/chain">Chain</a>
+      </div>
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>

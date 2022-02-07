@@ -1,29 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="../static/style.css">
-</head>
-<body>
-    <div id="page-content">
-        <div id="side-menu">
-            <a href="/">Inicio</a>
-            <a href="mine">Minerar</a>
-            <a href="transaction/new">Transacao</a>
-            <a href="wallet">Carteira</a>
-            <a href="chain">Chain</a>
-        </div>
-        <div id="container">
-            <img src="../static/img/pick.png" alt="">
-            {% if message %}
-            <p id="text-center">
-                minerando...
-            </p>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
+{% extends 'base.html' %} {% block content %}
+<div id="container" class="mine-container">
+  {% if mining %}
+  <a href="/mine?stop">
+    <img src="../static/img/pick.png" alt="" />
+  </a>
+  <p id="text-center">Minerando...</p>
+  {% else %}
+  <a href="/mine">
+    <img src="../static/img/pick.png" alt="" />
+  </a>
+  <p id="text-center">Mineração parada.</p>
+  {% endif %}
+</div>
+{% endblock %}

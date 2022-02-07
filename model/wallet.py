@@ -75,7 +75,7 @@ def create_transaction(receiver_addr, amount, priv_key, transactions):
     balance = get_balance(my_addr, transactions)
 
     if balance < amount:
-        return None
+        raise RuntimeError("Saldo menor que a quantidade enviada.")
 
     transaction = build_transaction(priv_key, my_addr, receiver_addr, amount)
 
