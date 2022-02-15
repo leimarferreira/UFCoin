@@ -1,3 +1,4 @@
+import time
 from model.transaction import create_transaction as build_transaction
 from hashlib import sha512
 
@@ -30,7 +31,32 @@ def get_balance(address: str, transactions):
     return balance
 
 
+def find_last_transaction_by_user(address, transactions):
+    if transactions is None or len(transactions) == 0:
+        return None
+
+    last_transaction = None
+    for transaction in transactions:
+        if transaction.sender == address:
+            if last_transaction == None or transaction.timestamp > last_transaction.timestamp:
+                last_transaction = transaction
+
+    return last_transaction
+
+
 def create_transaction(receiver_addr, my_addr, amount, transactions):
+    last_transaction = find_last_transaction_by_user(my_addr, transactions)
+
+    current_time = time.time()
+
+    if last_transaction is not None:
+        diff = current_time - last_transaction.timestamp
+        if diff < 600:  # 600 segundos ou 10 minutos
+            time_left = time.strftime("%M:%S", time.gmtime(600 - diff))
+            message = f'Usuários só podem realizar uma transação a cada 10 minutos. ' \
+                f'Próxima transação pode ser realizada em {time_left}'
+            raise RuntimeError(message)
+
     balance = get_balance(my_addr, transactions)
 
     if balance < amount:

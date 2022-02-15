@@ -1,15 +1,19 @@
+import time
+
 class Transaction:
-    def __init__(self, sender, receiver, amount) -> None:
+    def __init__(self, sender, receiver, amount, timestamp=None) -> None:
         self.sender = sender
         self.receiver = receiver
         self.amount = amount
+        self.timestamp = timestamp if timestamp is not None else time.time()
 
     @staticmethod
     def from_dict(trdict):
         transaction = Transaction(
             sender=trdict['sender'],
             receiver=trdict['receiver'],
-            amount=trdict['amount']
+            amount=trdict['amount'],
+            timestamp=trdict['timestamp']
         )
 
         return transaction
