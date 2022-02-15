@@ -1,59 +1,9 @@
-import rsa
-import os
 from model.transaction import create_transaction as build_transaction
-import re
 from hashlib import sha512
-
-PRIV_KEY_PATH = f'./wallet/priv_key'
-
-
-def generate_private_key():
-    poolsize = os.cpu_count()
-    (_, priv_key) = rsa.newkeys(1024, poolsize=poolsize)
-
-    path = re.sub('^(.[^/]+){1}', '', PRIV_KEY_PATH[::-1])[::-1]
-    if not os.path.exists(path):
-        os.mkdir(path)
-
-    with open(PRIV_KEY_PATH, 'w') as priv_key_file:
-        priv_key_file.write(priv_key.save_pkcs1("DER").hex())
 
 
 def init_wallet(user, passwd):
     generate_identifier(user, passwd)
-    try:
-        priv_key_file = open(PRIV_KEY_PATH, 'r')
-        priv_key_file.close()
-    except FileNotFoundError:
-        generate_private_key()
-
-
-def get_public_key():
-    pub_key = None
-    try:
-        priv_key_file = open(PRIV_KEY_PATH, 'r')
-        priv_key_der = priv_key_file.read()
-        priv_key = rsa.PrivateKey.load_pkcs1(
-            bytes.fromhex(priv_key_der), "DER")
-        pub_key = rsa.PublicKey(priv_key.n, priv_key.e).save_pkcs1("DER").hex()
-    except:
-        pass
-
-    return pub_key
-
-
-def get_priv_key():
-    try:
-        file = open(PRIV_KEY_PATH, 'r')
-        return file.read()
-    except FileNotFoundError:
-        return None
-
-
-def get_pub_key_from_priv_key(priv_key):
-    priv_key = rsa.PrivateKey.load_pkcs1(bytes.fromhex(priv_key), "DER")
-    pub_key = rsa.PublicKey(priv_key.n, priv_key.e)
-    return pub_key.save_pkcs1("DER").hex()
 
 
 def generate_identifier(user, passwd):

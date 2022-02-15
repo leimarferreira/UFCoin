@@ -69,3 +69,18 @@ class Block:
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    @staticmethod
+    def from_dict(bdict):
+        block = Block(
+            index=bdict['index'],
+            timestamp=bdict['timestamp'],
+            proof=bdict['proof'],
+            difficult=bdict['difficult'],
+            hash=bdict['hash'],
+            previous_hash=bdict['previous_hash'],
+            transactions=[Transaction.from_dict(
+                tr) for tr in bdict['transactions']]
+        )
+
+        return block

@@ -4,12 +4,14 @@
   <a href="/mine?stop">
     <img src="../static/img/pick.png" alt="" />
   </a>
-  <p id="text-center">Minerando...</p>
+  <p class="text-center">Minerando...</p>
+  <p class="text-center">Clique no ícone para parar a mineração.</p>
   {% else %}
-  <a href="/mine">
+  <a href="/mine?start">
     <img src="../static/img/pick.png" alt="" />
   </a>
-  <p id="text-center">Mineração parada.</p>
+  <p class="text-center">Mineração parada.</p>
+  <p class="text-center">Clique no ícone para iniciar a mineração.</p>
   {% endif %}
 </div>
 {% endblock %}

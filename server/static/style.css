@@ -62,6 +62,10 @@ p {
   border-bottom: 1px solid white;
 }
 
+.no-margin {
+  margin-left: 0px;
+}
+
 .text-center {
   font-size: 20px;
 }

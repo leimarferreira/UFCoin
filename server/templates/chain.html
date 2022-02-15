@@ -10,6 +10,8 @@
             <p>Hash: {{ block.hash }}</p>
             <p>Hash do bloco anterior: {{ block.previous_hash }}</p>
             <p>Timestamp: {{ block.timestamp }}</p>
+            <p>Prova de trabalho: {{ block.proof }}</p>
+            <p>Dificuldade: {{ block.difficult }}</p>
             <p>Transações: </p>
             {% for transaction in block.transactions %}
                 <div class="tr-info">

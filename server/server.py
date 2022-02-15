@@ -1,13 +1,8 @@
-from crypt import methods
 import re
 import sys
-import webbrowser
-from ctypes import addressof
 from threading import Thread
-from uuid import uuid4
 
 from flask import Flask, redirect, render_template, request, url_for
-from model import block
 from model.blockchain import Blockchain
 from model.wallet import get_identifier, init_wallet
 from utils import CustomJSONEncoder
@@ -57,7 +52,7 @@ def mineblock():
 
     if args is not None and args.get("stop") is not None:
         blockchain.stop_mining()
-    else:
+    elif args is not None and args.get("start") is not None:
         thread = Thread(target=blockchain.mine)
         thread.daemon = True
         thread.start()
@@ -76,13 +71,13 @@ def new_transaction():
         amount = request.form['amount']
 
         if not (receiver or amount):
-            return 'Missing values', 400
+            raise RuntimeError("Valores faltando.")
 
         blockchain.send_transaction(receiver, int(amount))
 
         response = {
             'title': "Transações",
-            'message': "Transação realizada com sucesso."
+            'message': "Transação adicionada à fila de espera. A transação será validada."
         }
 
         return render_template('transaction.html', **response), 200
@@ -134,6 +129,8 @@ def login():
         passwd = request.form['password']
         init_wallet(user, passwd)
         user_identified = True
+        chain = Blockchain.load_blockchain(get_identifier())
+        blockchain.replace_blockchain(chain)
         return redirect(url_for('index'))
 
     response = {
@@ -159,9 +156,17 @@ def before_all():
 
 @app.errorhandler(HTTPException)
 def error(e):
+
+    ex = e.original_exception
+    message = None
+    if len(ex.args) > 0:
+        message = ex.args[0]
+    else:
+        message = "Ocorreu um erro durante realização da operação."
+
     response = {
         'title': "Erro",
-        'message': "Ocorreu um erro durante realização da operação."
+        'message': message
     }
     return render_template("error.html", **response)
 

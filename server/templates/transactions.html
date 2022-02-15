@@ -4,7 +4,7 @@
   {% if not transactions %}
   <p>Sem transações disponíveis.</p>
   {% endif %} {% for transaction in transactions %}
-  <div class="tr-info">
+  <div class="tr-info no-margin">
     <p>Remetente: {{ transaction.sender }}</p>
     <p>Destinatário: {{ transaction.receiver }}</p>
     <p>Quantidade: {{ transaction.amount }}</p>

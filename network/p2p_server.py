@@ -1,10 +1,12 @@
 import asyncio
+from copy import deepcopy
 import json
-from typing import Any, List
+from typing import Any
 
 import websockets
 from model import Block
 from model.transaction import Transaction
+from model.wallet import get_identifier
 from utils import CustomJSONEncoder
 
 
@@ -17,6 +19,7 @@ class MessageType:
     RESPONSE_TRANSACTIONS = 5
     RESPONSE_TRANSACTION = 6
     CONNECT_MESSAGE = 7
+    DIFFICULT = 8
 
 
 class Message:
@@ -26,7 +29,6 @@ class Message:
 
 
 sockets = set()
-blockchain = None
 address = None
 
 
@@ -41,11 +43,18 @@ def get_addr(websocket):
 
 
 async def init_connection(uri):
-    if not uri in sockets:
+    global address
+    if not uri in sockets and uri != address:
         sockets.add(uri)
-        async with websockets.connect(uri) as websocket:
-            await write(websocket, connect_message())
-            await write(websocket, query_chain_length())
+        try:
+            async with websockets.connect(uri) as websocket:
+                await write(websocket, connect_message())
+                await write(websocket, query_chain_length())
+        except:
+            sockets.remove(uri)
+
+        blockchain.nodes = sockets
+        blockchain.save_blockchain(blockchain, get_identifier())
 
 
 def json_to_object(data):
@@ -84,16 +93,14 @@ async def handler(websocket):
             broadcast_latest()
         elif message['type'] == MessageType.QUERY_BLOCKCHAIN:
             broadcast_all()
+        elif message['type'] == MessageType.RESPONSE_LATEST_BLOCK:
+            handle_latest_block(message['data'])
         elif message['type'] == MessageType.RESPONSE_BLOCKCHAIN:
-            blockchain_json = json.dumps(message['data'])
-            blocks = blockchain_from_json(blockchain_json)
-
-            if blocks is None:
-                return
-
-            handle_blockchain_response(blocks['chain'])
+            handle_blockchain_response(message['data'])
         elif message['type'] == MessageType.RESPONSE_TRANSACTION:
             handle_transaction(message['data'])
+        elif message['type'] == MessageType.DIFFICULT:
+            handle_difficult_change(message['data'])
 
 
 async def write(websocket, message):
@@ -102,7 +109,8 @@ async def write(websocket, message):
 
 
 async def broadcast(message):
-    for uri in sockets:
+    uris = deepcopy(list(sockets))
+    for uri in uris:
         async with websockets.connect(uri) as websocket:
             await write(websocket, message)
 
@@ -130,44 +138,38 @@ def response_chain():
 
 
 def response_latest():
-    data = {
-        'chain': [blockchain.last_block]
-    }
     return Message(
-        type=MessageType.RESPONSE_BLOCKCHAIN,
-        data=data
+        type=MessageType.RESPONSE_LATEST_BLOCK,
+        data=blockchain.last_block
     )
 
 
-def handle_blockchain_response(blocks: List[Block]):
-    if len(blocks) == 0:
+def handle_blockchain_response(bcdict):
+    global blockchain
+    chain = blockchain.from_dict(bcdict)
+    blockchain.replace_blockchain(chain)
+
+
+def handle_latest_block(block_dict):
+    block = Block.from_dict(block_dict)
+    last_block = blockchain.last_block
+
+    if block.index == last_block.index and block.hash == last_block.hash:
         return
-
-    last_block_received = blocks[len(blocks) - 1]
-    last_block_held = blockchain.last_block
-
-    if last_block_received.index == 0 and last_block_held.index == 0:
-        if last_block_received.timestamp < last_block_held.timestamp:
-            blockchain.chain[0] = last_block_received
-
-    if (last_block_received.index > last_block_held.index):
-        if last_block_received.previous_hash == last_block_held.hash:
-            blockchain.append_block(last_block_received)
-        elif len(blocks) == 1:
-            exec_async(broadcast(query_all()))
-        else:
-            blockchain.replace_chain(blocks)
+    elif block.index == last_block.index + 1 and block.previous_hash == last_block.hash:
+        blockchain.append_block(block)
+    else:
+        exec_async(broadcast(query_all()))
 
 
 def handle_transaction(data):
-    transaction = Transaction(
-        sender=data['sender'],
-        receiver=data['receiver'],
-        amount=data['amount'],
-        signature=data['signature']
-    )
+    transaction = Transaction.from_dict(data)
 
     blockchain.append_transaction(transaction)
+
+
+def handle_difficult_change(difficult):
+    blockchain.difficult = difficult
 
 
 def broadcast_latest():
@@ -186,8 +188,21 @@ def broadcast_transaction(transaction):
     exec_async(broadcast(message))
 
 
+def broadcast_difficult(difficult):
+    message = {
+        'type': MessageType.DIFFICULT,
+        'data': difficult
+    }
+    exec_async(broadcast(message))
+
+
 def connect_to_peer(uri):
     exec_async(init_connection(uri))
+
+
+def is_valid_node(address):
+    # TODO: validar se o endereço existe
+    return True
 
 
 def exec_async(task):
@@ -205,7 +220,7 @@ def exec_async(task):
 
 
 async def main(ip, port):
-    async with websockets.serve(handler, ip, port):
+    async with websockets.serve(handler, ip, port, close_timeout=60):
         await asyncio.Future()
 
 
@@ -216,3 +231,6 @@ def init(ip, p2p_port, chain):
     address = f'ws://{ip}:{p2p_port}'
     print(f'P2P server running on: {address}', end='\n\n')
     asyncio.run(main(ip, p2p_port))
+
+
+blockchain: Any = None
