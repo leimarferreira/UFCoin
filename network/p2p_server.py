@@ -15,11 +15,10 @@ class MessageType:
     QUERY_BLOCKCHAIN = 1
     RESPONSE_LATEST_BLOCK = 2
     RESPONSE_BLOCKCHAIN = 3
-    QUERY_TRANSACTION_TRANSACTIONS = 4
-    RESPONSE_TRANSACTIONS = 5
-    RESPONSE_TRANSACTION = 6
-    CONNECT_MESSAGE = 7
-    DIFFICULT = 8
+    RESPONSE_TRANSACTIONS = 4
+    RESPONSE_TRANSACTION = 5
+    CONNECT_MESSAGE = 6
+    DIFFICULT = 5
 
 
 class Message:
@@ -88,7 +87,7 @@ async def handler(websocket):
             return
 
         if message['type'] == MessageType.CONNECT_MESSAGE:
-            await init_connection(message['data']['address'])
+            await handle_connection(message['data'])
         elif message['type'] == MessageType.QUERY_LATEST_BLOCK:
             broadcast_latest()
         elif message['type'] == MessageType.QUERY_BLOCKCHAIN:
@@ -117,7 +116,8 @@ async def broadcast(message):
 
 def connect_message():
     data = {
-        'address': address
+        'address': address,
+        'identifier': get_identifier()
     }
     return Message(type=MessageType.CONNECT_MESSAGE, data=data)
 
@@ -143,6 +143,9 @@ def response_latest():
         data=blockchain.last_block
     )
 
+async def handle_connection(data):
+    await init_connection(data['address'])
+    blockchain.peer_addresses.add(data['identifier'])
 
 def handle_blockchain_response(bcdict):
     global blockchain
@@ -198,11 +201,6 @@ def broadcast_difficult(difficult):
 
 def connect_to_peer(uri):
     exec_async(init_connection(uri))
-
-
-def is_valid_node(address):
-    # TODO: validar se o endereço existe
-    return True
 
 
 def exec_async(task):

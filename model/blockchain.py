@@ -3,7 +3,7 @@ import os
 import pickle
 
 from network.p2p_server import (broadcast_latest, broadcast_transaction, broadcast_difficult,
-                                connect_to_peer, is_valid_node)
+                                connect_to_peer)
 
 from model import Block, Transaction
 from model.transaction import Transaction, get_coinbase_transaction
@@ -19,6 +19,7 @@ class Blockchain:
         self.difficult_adjustment_interval = 10  # in blocks
         self.difficult = 5
         self.nodes = set()
+        self.peer_addresses = set()
         self.mining = False
 
         # Criar bloco genêsis
@@ -80,8 +81,8 @@ class Blockchain:
         if transaction is None:
             return None
 
-        if not is_valid_node(address):
-            return None
+        if not self.is_valid_node(address):
+            raise RuntimeError("Destinatário não incluso na rede.")
 
         self.append_transaction(transaction)
         broadcast_transaction(transaction)
@@ -92,6 +93,9 @@ class Blockchain:
 
     def get_nodes(self):
         return self.nodes
+
+    def is_valid_node(self, address):
+        return address in self.peer_addresses
 
     def get_difficult(self):
         if (self.last_block.index % self.difficult_adjustment_interval == 0
@@ -178,6 +182,7 @@ class Blockchain:
             self.difficult_adjustment_interval = blockchain.difficult_adjustment_interval
             self.difficult = blockchain.difficult
             self.nodes = blockchain.nodes
+            self.peer_addresses = blockchain.peer_addresses
             self.transaction_pool = blockchain.transaction_pool
 
             for node in self.nodes:
@@ -212,6 +217,7 @@ class Blockchain:
         blockchain.difficult_adjustment_interval = bcdict['difficult_adjustment_interval']
         blockchain.difficult = bcdict['difficult']
         blockchain.nodes = set(bcdict['nodes'])
+        blockchain.peer_addresses = set(bcdict['peer_addresses'])
         blockchain.mining = False
         blockchain.chain = [Block.from_dict(bdict)
                             for bdict in bcdict['chain']]
