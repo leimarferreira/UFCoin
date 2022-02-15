@@ -9,7 +9,7 @@ const listenForMinedBlocks = async () => {
 
     if (result.length != numOfBlocks) {
       let message = document.createElement("p");
-      message.innerText = "Novo bloco minerado.";
+      message.innerText = "Novos blocos minerado.";
       messages.appendChild(message);
 
       setTimeout(() => {
