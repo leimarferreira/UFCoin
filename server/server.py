@@ -149,6 +149,13 @@ def login():
     return render_template("login.html", **response)
 
 
+@app.route("/logout", methods=["GET"])
+def logout():
+    global user_identified
+    user_identified = False
+    return redirect(url_for("index"))
+
+
 @app.before_request
 def before_all():
     global user_identified
