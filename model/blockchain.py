@@ -2,10 +2,8 @@ import requests
 from network.p2p_server import broadcast_latest, connect_to_peer, broadcast_transaction, get_sockets
 
 from model import Block, Transaction
-from model.transaction import Transaction, is_valid_transaction, create_transaction
-from model.transaction import get_coinbase_transaction, is_valid_transaction
-from model.wallet import (create_transaction, get_balance, get_priv_key,
-                          get_public_key)
+from model.transaction import Transaction, create_transaction, get_coinbase_transaction, is_valid_transaction
+from model.wallet import create_transaction, get_balance, get_identifier
 
 
 class Blockchain:
@@ -35,9 +33,9 @@ class Blockchain:
         :return: <Block> Block created.
         """
 
-        pub_key = get_public_key()
+        address = get_identifier()
         coinbase_transaction = get_coinbase_transaction(
-            pub_key)
+            address)
 
         transactions = [coinbase_transaction]
         transactions.extend(self.unspent_transactions)
@@ -64,8 +62,8 @@ class Blockchain:
         return False
 
     def append_transaction(self, transaction):
-        if is_valid_transaction(transaction):
-            self.unspent_transactions.append(transaction)
+        # FIXME if is_valid_transaction(transaction):
+        self.unspent_transactions.append(transaction)
 
     def get_all_transactions(self):
         transactions = []
@@ -77,13 +75,13 @@ class Blockchain:
     def send_transaction(self, address: str, amount: int):
         transactions = self.get_all_transactions()
         transaction = create_transaction(
-            address, amount, get_priv_key(), transactions)
+            address, get_identifier(), amount, transactions)
 
         if transaction is None:
             return None
 
-        if not is_valid_transaction(transaction):
-            return None
+        # FIXME: if not is_valid_transaction(transaction):
+        #     return None
 
         self.append_transaction(transaction)
         broadcast_transaction(transaction)
@@ -199,12 +197,12 @@ class Blockchain:
         return False
 
     def get_account_balance(self):
-        pub_key = get_public_key()
+        address = get_identifier()
         transactions = []
         for block in self.chain:
             transactions.extend(block.transactions)
 
-        result = get_balance(pub_key, transactions)
+        result = get_balance(address, transactions)
         return result
 
     @staticmethod

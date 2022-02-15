@@ -1,3 +1,4 @@
+from crypt import methods
 import re
 import sys
 import webbrowser
@@ -5,16 +6,14 @@ from ctypes import addressof
 from threading import Thread
 from uuid import uuid4
 
-from flask import Flask, jsonify, redirect, render_template, request
+from flask import Flask, redirect, render_template, request, url_for
 from model.blockchain import Blockchain
-from model.wallet import get_public_key
+from model.wallet import get_identifier, init_wallet
 from utils import CustomJSONEncoder
 from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 app.json_encoder = CustomJSONEncoder
-
-node_identifier = str(uuid4()).replace('-', '')
 
 blockchain: Blockchain = None
 
@@ -36,7 +35,7 @@ def wallet():
     response = {
         'title': 'Carteira',
         'coins': blockchain.get_account_balance(),
-        'address': get_public_key()
+        'address': get_identifier()
     }
 
     return render_template('wallet.html', **response), 200
@@ -108,6 +107,41 @@ def register_node():
     return render_template('peers.html', **response)
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    global user_identified
+
+    if user_identified:
+        redirect("/")
+
+    if request.method == 'POST':
+        user = request.form['username']
+        passwd = request.form['password']
+        init_wallet(user, passwd)
+        user_identified = True
+        return redirect(url_for('index'))
+
+    response = {
+        'title': "Login"
+    }
+
+    return render_template("login.html", **response)
+
+
+@app.before_request
+def before_all():
+    global user_identified
+    path = request.path
+
+    if re.match('^/static/.*', path):
+        return
+
+    if user_identified and path == "/login":
+        return redirect(url_for("index"))
+    elif not user_identified and path != "/login":
+        return redirect(url_for("login"))
+
+
 @app.errorhandler(HTTPException)
 def error(e):
     response = {
@@ -115,6 +149,7 @@ def error(e):
         'message': "Ocorreu um erro durante realização da operação."
     }
     return render_template("error.html", **response)
+
 
 @app.errorhandler(404)
 def not_found(e):
@@ -130,6 +165,8 @@ def run(ip_addr, http_port, ws_port, chain):
     global _http_port
     global blockchain
     global ip_address
+    global user_identified
+    user_identified = False
     ip_address = ip_addr
     _http_port = http_port
     p2p_port = ws_port

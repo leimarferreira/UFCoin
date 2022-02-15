@@ -17,9 +17,9 @@ def get_coinbase_transaction(receiver):
     return Transaction('', receiver, COINBASE_AMOUNT)
 
 
-def create_transaction(sender_priv_key, sender_addr, receiver_addr, amount):
+def create_transaction(sender_addr, receiver_addr, amount):
     transaction = Transaction(sender_addr, receiver_addr, amount)
-    sign_transaction(transaction, sender_priv_key)
+    # FIXME: sign_transaction(transaction, sender_priv_key)
     return transaction
 
 

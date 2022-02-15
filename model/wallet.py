@@ -2,10 +2,9 @@ import rsa
 import os
 from model.transaction import create_transaction as build_transaction
 import re
-import sys
-import random
+from hashlib import sha512
 
-PRIV_KEY_PATH = f'../wallet/privatekey{random.randint(0, sys.maxsize)}'
+PRIV_KEY_PATH = f'./wallet/priv_key'
 
 
 def generate_private_key():
@@ -20,15 +19,16 @@ def generate_private_key():
         priv_key_file.write(priv_key.save_pkcs1("DER").hex())
 
 
-def init_wallet():
+def init_wallet(user, passwd):
+    generate_identifier(user, passwd)
     try:
-        file = open(PRIV_KEY_PATH, 'r')
-        file.close()
+        priv_key_file = open(PRIV_KEY_PATH, 'r')
+        priv_key_file.close()
     except FileNotFoundError:
         generate_private_key()
 
 
-def get_public_key() -> str:
+def get_public_key():
     pub_key = None
     try:
         priv_key_file = open(PRIV_KEY_PATH, 'r')
@@ -56,6 +56,17 @@ def get_pub_key_from_priv_key(priv_key):
     return pub_key.save_pkcs1("DER").hex()
 
 
+def generate_identifier(user, passwd):
+    global identifier
+    content = f'{user}{passwd}'.encode()
+    identifier = sha512(content).hexdigest()
+
+
+def get_identifier():
+    global identifier
+    return identifier
+
+
 def get_balance(address: str, transactions):
     received_amount = 0
     sent_amount = 0
@@ -69,14 +80,12 @@ def get_balance(address: str, transactions):
     return balance
 
 
-def create_transaction(receiver_addr, amount, priv_key, transactions):
-    my_addr = get_pub_key_from_priv_key(priv_key)
-
+def create_transaction(receiver_addr, my_addr, amount, transactions):
     balance = get_balance(my_addr, transactions)
 
     if balance < amount:
         raise RuntimeError("Saldo menor que a quantidade enviada.")
 
-    transaction = build_transaction(priv_key, my_addr, receiver_addr, amount)
+    transaction = build_transaction(my_addr, receiver_addr, amount)
 
     return transaction

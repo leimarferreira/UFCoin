@@ -31,8 +31,7 @@ if __name__ == '__main__':
             http_port = 5000
         if p2p_port is None:
             p2p_port = 6000
-
-    wallet.init_wallet()
+    
     ip = get_ip_address()
     blockchain = Blockchain()
     p2p_thread = Thread(target=p2p_server.init, args=[ip, p2p_port, blockchain])
