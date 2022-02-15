@@ -2,7 +2,7 @@ import re
 import sys
 from threading import Thread
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, redirect, render_template, request, url_for, jsonify
 from model.blockchain import Blockchain
 from model.wallet import get_identifier, init_wallet
 from utils import CustomJSONEncoder
@@ -91,6 +91,15 @@ def get_chain():
         'length': len(blockchain.chain)
     }
     return render_template('chain.html', **response), 200
+
+
+@app.route('/chain/length')
+def get_chain_length():
+    response = {
+        'length': len(blockchain.chain)
+    }
+
+    return jsonify(response), 200
 
 
 @app.route('/transactions', methods=["GET"])

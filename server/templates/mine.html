@@ -6,6 +6,7 @@
   </a>
   <p class="text-center">Minerando...</p>
   <p class="text-center">Clique no ícone para parar a mineração.</p>
+  <div id="messages"></div>
   {% else %}
   <a href="/mine?start">
     <img src="../static/img/pick.png" alt="" />
@@ -14,4 +15,5 @@
   <p class="text-center">Clique no ícone para iniciar a mineração.</p>
   {% endif %}
 </div>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 {% endblock %}

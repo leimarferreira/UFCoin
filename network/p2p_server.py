@@ -143,9 +143,11 @@ def response_latest():
         data=blockchain.last_block
     )
 
+
 async def handle_connection(data):
     await init_connection(data['address'])
     blockchain.peer_addresses.add(data['identifier'])
+
 
 def handle_blockchain_response(bcdict):
     global blockchain
