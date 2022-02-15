@@ -1,0 +1,14 @@
+{% extends 'base.html' %} {% block content %}
+<div id="container">
+  <h3>Transações</h3>
+  {% if not transactions %}
+  <p>Sem transações disponíveis.</p>
+  {% endif %} {% for transaction in transactions %}
+  <div class="tr-info">
+    <p>Remetente: {{ transaction.sender }}</p>
+    <p>Destinatário: {{ transaction.receiver }}</p>
+    <p>Quantidade: {{ transaction.amount }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

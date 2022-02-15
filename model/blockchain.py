@@ -2,7 +2,7 @@ import requests
 from network.p2p_server import broadcast_latest, connect_to_peer, broadcast_transaction, get_sockets
 
 from model import Block, Transaction
-from model.transaction import Transaction, create_transaction, get_coinbase_transaction, is_valid_transaction
+from model.transaction import Transaction, get_coinbase_transaction, is_valid_transaction
 from model.wallet import create_transaction, get_balance, get_identifier
 
 
@@ -24,7 +24,7 @@ class Blockchain:
             difficult=self.difficult
         )
         self.chain.append(genesis)
-        self.unspent_transactions = []
+        self.transaction_pool = []
 
     def create_block(self, proof: int) -> Block:
         """
@@ -38,7 +38,7 @@ class Blockchain:
             address)
 
         transactions = [coinbase_transaction]
-        transactions.extend(self.unspent_transactions)
+        transactions.extend(self.transaction_pool)
 
         last_block = self.last_block
         block = Block(
@@ -55,7 +55,7 @@ class Blockchain:
         last_block = self.last_block
         if Block.is_valid_block(block, last_block):
             self.chain.append(block)
-            self.unspent_transactions = []
+            self.transaction_pool = []
             broadcast_latest()
             return True
 
@@ -63,14 +63,7 @@ class Blockchain:
 
     def append_transaction(self, transaction):
         # FIXME if is_valid_transaction(transaction):
-        self.unspent_transactions.append(transaction)
-
-    def get_all_transactions(self):
-        transactions = []
-        for block in self.chain:
-            transactions.extend(block.transactions)
-
-        return transactions
+        self.transaction_pool.append(transaction)
 
     def send_transaction(self, address: str, amount: int):
         transactions = self.get_all_transactions()
@@ -198,12 +191,19 @@ class Blockchain:
 
     def get_account_balance(self):
         address = get_identifier()
+        transactions = self.get_all_transactions()
+
+        result = get_balance(address, transactions)
+        return result
+
+    def get_all_transactions(self):
         transactions = []
         for block in self.chain:
             transactions.extend(block.transactions)
 
-        result = get_balance(address, transactions)
-        return result
+        transactions.extend(self.transaction_pool)
+
+        return transactions
 
     @staticmethod
     def from_json(obj):

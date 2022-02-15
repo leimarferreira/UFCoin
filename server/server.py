@@ -7,6 +7,7 @@ from threading import Thread
 from uuid import uuid4
 
 from flask import Flask, redirect, render_template, request, url_for
+from model import block
 from model.blockchain import Blockchain
 from model.wallet import get_identifier, init_wallet
 from utils import CustomJSONEncoder
@@ -79,8 +80,12 @@ def new_transaction():
 
         blockchain.send_transaction(receiver, int(amount))
 
-        message = "A transação vai ser adicionada ao próximo bloco minerado."
-        return render_template('transaction.html', message=message), 200
+        response = {
+            'title': "Transações",
+            'message': "Transação realizada com sucesso."
+        }
+
+        return render_template('transaction.html', **response), 200
 
 
 @app.route('/chain', methods=['GET'])
@@ -91,6 +96,16 @@ def get_chain():
         'length': len(blockchain.chain)
     }
     return render_template('chain.html', **response), 200
+
+
+@app.route('/transactions', methods=["GET"])
+def get_transactions():
+    response = {
+        'title': 'Transações',
+        'transactions': blockchain.get_all_transactions()
+    }
+
+    return render_template('transactions.html', **response)
 
 
 @app.route("/nodes/register", methods=["GET", "POST"])
