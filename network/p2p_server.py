@@ -43,6 +43,11 @@ def get_addr(websocket):
 
 async def init_connection(uri):
     global address
+
+    if uri == address:
+        blockchain.nodes.remove(uri)
+        update_blockchain_nodes()
+
     if not uri in sockets and uri != address:
         sockets.add(uri)
         try:
@@ -52,8 +57,13 @@ async def init_connection(uri):
         except:
             sockets.remove(uri)
 
-        blockchain.nodes = sockets
-        blockchain.save_blockchain(blockchain, get_identifier())
+        update_blockchain_nodes()
+        
+
+
+def update_blockchain_nodes():
+    blockchain.nodes = sockets
+    blockchain.save_blockchain(blockchain, get_identifier())
 
 
 def json_to_object(data):
@@ -110,8 +120,11 @@ async def write(websocket, message):
 async def broadcast(message):
     uris = deepcopy(list(sockets))
     for uri in uris:
-        async with websockets.connect(uri) as websocket:
-            await write(websocket, message)
+        try:
+            async with websockets.connect(uri) as websocket:
+                await write(websocket, message)
+        except:
+            sockets.remove(uri)
 
 
 def connect_message():

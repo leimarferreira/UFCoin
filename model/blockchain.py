@@ -1,3 +1,4 @@
+from copy import deepcopy
 from hashlib import sha256
 import os
 import pickle
@@ -176,19 +177,23 @@ class Blockchain:
         if blockchain is None:
             return
 
+        current_nodes = list(self.nodes)
+
         if self.is_blockchain_valid(blockchain) and self.get_accumulated_difficult(blockchain.chain) > self.get_accumulated_difficult(self.chain):
             self.chain = blockchain.chain
             self.block_generation_inverval = blockchain.block_generation_inverval
             self.difficult_adjustment_interval = blockchain.difficult_adjustment_interval
             self.difficult = blockchain.difficult
-            self.nodes = blockchain.nodes
+            nodes = list(blockchain.nodes)
+            nodes.extend(current_nodes)
+            self.nodes = set(nodes)
             self.peer_addresses = blockchain.peer_addresses
             self.transaction_pool = blockchain.transaction_pool
 
-            for node in self.nodes:
-                self.register_node(node)
-
             self.save_blockchain(self, get_identifier())
+
+        for node in deepcopy(list(self.nodes)):
+            self.register_node(node)
 
     def get_account_balance(self):
         address = get_identifier()

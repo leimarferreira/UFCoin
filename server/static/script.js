@@ -1,7 +1,7 @@
 let messages = document.getElementById("messages");
 
 const listenForMinedBlocks = async () => {
-  let numOfBlocks = 1;
+  let numOfBlocks = document.currentScript.getAttribute('length');
   let url = new URL(`${window.location.origin}/chain/length`);
   setInterval(async () => {
     response = await fetch(url);
@@ -9,7 +9,7 @@ const listenForMinedBlocks = async () => {
 
     if (result.length != numOfBlocks) {
       let message = document.createElement("p");
-      message.innerText = "Novos blocos minerado.";
+      message.innerText = "Novos blocos minerados.";
       messages.appendChild(message);
 
       setTimeout(() => {

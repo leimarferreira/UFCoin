@@ -59,6 +59,7 @@ def mineblock():
 
     response = {
         'title': 'Minerar',
+        'length': len(blockchain.chain),
         'mining': blockchain.mining
     }
     return render_template('mine.html', **response), 200
