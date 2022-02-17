@@ -132,6 +132,7 @@ def connect_message():
         'address': address,
         'identifier': get_identifier()
     }
+    
     return Message(type=MessageType.CONNECT_MESSAGE, data=data)
 
 

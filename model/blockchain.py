@@ -178,6 +178,7 @@ class Blockchain:
             return
 
         current_nodes = list(self.nodes)
+        current_peer_addresses = list(self.peer_addresses)
 
         if self.is_blockchain_valid(blockchain) and self.get_accumulated_difficult(blockchain.chain) > self.get_accumulated_difficult(self.chain):
             self.chain = blockchain.chain
@@ -187,7 +188,9 @@ class Blockchain:
             nodes = list(blockchain.nodes)
             nodes.extend(current_nodes)
             self.nodes = set(nodes)
-            self.peer_addresses = blockchain.peer_addresses
+            peer_addresses = list(blockchain.peer_addresses)
+            peer_addresses.extend(current_peer_addresses)
+            self.peer_addresses = set(peer_addresses)
             self.transaction_pool = blockchain.transaction_pool
 
             self.save_blockchain(self, get_identifier())
